@@ -11,22 +11,23 @@ use bruce_core::types::Eps;
 use ndarray::{Array1, Array2};
 use proptest::prelude::*;
 
-/// Strategy: a small random instance — dimensions, data, a
-/// duplicate-free pair set, and a temperature regime selector.
-fn instance() -> impl Strategy<
-    Value = (
-        usize,               // n_q
-        usize,               // n_k
-        usize,               // d_k
-        usize,               // d_v
-        Vec<f64>,            // q data
-        Vec<f64>,            // k data
-        Vec<f64>,            // v data
-        Vec<(usize, usize)>, // pairs (deduplicated)
-        u8,                  // regime: 0 -> eps=0, 1 -> finite, 2 -> inf
-        f64,                 // finite eps in (0.05, 4)
-    ),
-> {
+/// One generated test instance: dimensions, flat data buffers, a
+/// duplicate-free pair set, a regime selector, and a finite eps.
+type Instance = (
+    usize,               // n_q
+    usize,               // n_k
+    usize,               // d_k
+    usize,               // d_v
+    Vec<f64>,            // q data
+    Vec<f64>,            // k data
+    Vec<f64>,            // v data
+    Vec<(usize, usize)>, // pairs (deduplicated)
+    u8,                  // regime: 0 -> eps=0, 1 -> finite, 2 -> inf
+    f64,                 // finite eps in (0.05, 4)
+);
+
+/// Strategy: a small random instance.
+fn instance() -> impl Strategy<Value = Instance> {
     (2usize..8, 2usize..8, 1usize..4, 1usize..4).prop_flat_map(|(n_q, n_k, d_k, d_v)| {
         let qlen = n_q * d_k;
         let klen = n_k * d_k;
