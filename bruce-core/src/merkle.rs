@@ -35,7 +35,7 @@ fn h(bytes: &[u8]) -> Hash {
 #[inline]
 fn h_pair(left: &Hash, right: &Hash) -> Hash {
     let mut buf = [0u8; 65];
-    buf[0] = 0x01;             // domain separator: interior node
+    buf[0] = 0x01; // domain separator: interior node
     buf[1..33].copy_from_slice(left);
     buf[33..65].copy_from_slice(right);
     h(&buf)
@@ -44,7 +44,7 @@ fn h_pair(left: &Hash, right: &Hash) -> Hash {
 #[inline]
 fn h_leaf(bytes: &[u8]) -> Hash {
     let mut buf = Vec::with_capacity(bytes.len() + 1);
-    buf.push(0x00);             // domain separator: leaf
+    buf.push(0x00); // domain separator: leaf
     buf.extend_from_slice(bytes);
     h(&buf)
 }
@@ -91,7 +91,7 @@ impl MerkleAuditLog {
         }
         let mut level: Vec<Hash> = self.leaves.clone();
         while level.len() > 1 {
-            let mut next = Vec::with_capacity((level.len() + 1) / 2);
+            let mut next = Vec::with_capacity(level.len().div_ceil(2));
             let mut i = 0;
             while i + 1 < level.len() {
                 next.push(h_pair(&level[i], &level[i + 1]));
@@ -117,16 +117,16 @@ impl MerkleAuditLog {
         let mut i = idx;
         let mut level = self.leaves.clone();
         while level.len() > 1 {
-            if i % 2 == 0 {
+            if i.is_multiple_of(2) {
                 if i + 1 < level.len() {
-                    path.push(level[i + 1]);   // real right sibling
+                    path.push(level[i + 1]); // real right sibling
                 }
                 // else odd-out: no proof entry, just promote up
             } else {
-                path.push(level[i - 1]);        // real left sibling
+                path.push(level[i - 1]); // real left sibling
             }
             // build next level
-            let mut next = Vec::with_capacity((level.len() + 1) / 2);
+            let mut next = Vec::with_capacity(level.len().div_ceil(2));
             let mut j = 0;
             while j + 1 < level.len() {
                 next.push(h_pair(&level[j], &level[j + 1]));
@@ -142,8 +142,13 @@ impl MerkleAuditLog {
     }
 
     /// Verify that a leaf is included in a published root.
-    pub fn verify(payload: &[u8], idx: usize, n_leaves: usize,
-                  proof: &[Hash], root: &Hash) -> bool {
+    pub fn verify(
+        payload: &[u8],
+        idx: usize,
+        n_leaves: usize,
+        proof: &[Hash],
+        root: &Hash,
+    ) -> bool {
         if n_leaves == 0 {
             return false;
         }
@@ -152,7 +157,7 @@ impl MerkleAuditLog {
         let mut level_size = n_leaves;
         let mut p = 0usize;
         while level_size > 1 {
-            if i % 2 == 0 {
+            if i.is_multiple_of(2) {
                 if i + 1 < level_size {
                     if p >= proof.len() {
                         return false;
@@ -169,7 +174,7 @@ impl MerkleAuditLog {
                 p += 1;
             }
             i /= 2;
-            level_size = (level_size + 1) / 2;
+            level_size = level_size.div_ceil(2);
         }
         &hh == root
     }
@@ -218,8 +223,10 @@ mod tests {
         for i in 0..10 {
             let payload = format!("op-{i}");
             let proof = log.proof(i).unwrap();
-            assert!(MerkleAuditLog::verify(payload.as_bytes(), i, 10, &proof, &root),
-                "inclusion proof failed for idx {i}");
+            assert!(
+                MerkleAuditLog::verify(payload.as_bytes(), i, 10, &proof, &root),
+                "inclusion proof failed for idx {i}"
+            );
         }
     }
 
@@ -244,6 +251,6 @@ mod tests {
             log.append(format!("op-{i}").as_bytes());
             roots.insert(log.root());
         }
-        assert_eq!(roots.len(), 15);   // each append yields a new root
+        assert_eq!(roots.len(), 15); // each append yields a new root
     }
 }

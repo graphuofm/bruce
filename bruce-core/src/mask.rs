@@ -321,13 +321,11 @@ mod tests {
     ) -> Array2<f64> {
         let mut out = Array2::<f64>::zeros((q.nrows(), v.ncols()));
         for i in 0..q.nrows() {
-            let js: Vec<usize> =
-                pairs.iter().filter(|p| p.0 == i).map(|p| p.1).collect();
+            let js: Vec<usize> = pairs.iter().filter(|p| p.0 == i).map(|p| p.1).collect();
             if js.is_empty() {
                 continue;
             }
-            let scores: Vec<f64> =
-                js.iter().map(|&j| q.row(i).dot(&k.row(j))).collect();
+            let scores: Vec<f64> = js.iter().map(|&j| q.row(i).dot(&k.row(j))).collect();
             let weights = if eps.is_inf() {
                 vec![1.0 / js.len() as f64; js.len()]
             } else {
@@ -347,7 +345,7 @@ mod tests {
     fn shuffled<T: Clone>(xs: &[T]) -> Vec<T> {
         let n = xs.len();
         let mut step = (n / 2) | 1;
-        while n % step == 0 && step < n {
+        while n.is_multiple_of(step) && step < n {
             step += 2;
         }
         (0..n).map(|t| xs[(t * step + 3) % n].clone()).collect()
@@ -361,14 +359,11 @@ mod tests {
         let k = pseudo(n, 6, 2);
         let v = pseudo(n, 3, 3);
         for eps in [Eps::ONE, Eps(0.37)] {
-            let (out, covered) = masked_attention(
-                &q.view(), &k.view(), &v.view(), &causal_pairs(n), eps,
-            )
-            .unwrap();
-            let reference = tree_causal_attention(
-                &q.view(), &k.view(), &v.view(), &chain_tree(n), eps,
-            )
-            .unwrap();
+            let (out, covered) =
+                masked_attention(&q.view(), &k.view(), &v.view(), &causal_pairs(n), eps).unwrap();
+            let reference =
+                tree_causal_attention(&q.view(), &k.view(), &v.view(), &chain_tree(n), eps)
+                    .unwrap();
             assert!(covered.iter().all(|&c| c));
             for (a, b) in out.iter().zip(reference.iter()) {
                 assert_abs_diff_eq!(a, b, epsilon = 1e-12);
@@ -388,12 +383,8 @@ mod tests {
         let perm = shuffled(&pairs);
         assert_ne!(pairs, perm);
         for eps in [Eps::ZERO, Eps(0.5), Eps::ONE, Eps::INF] {
-            let (a, _) =
-                masked_attention(&q.view(), &k.view(), &v.view(), &pairs, eps)
-                    .unwrap();
-            let (b, _) =
-                masked_attention(&q.view(), &k.view(), &v.view(), &perm, eps)
-                    .unwrap();
+            let (a, _) = masked_attention(&q.view(), &k.view(), &v.view(), &pairs, eps).unwrap();
+            let (b, _) = masked_attention(&q.view(), &k.view(), &v.view(), &perm, eps).unwrap();
             for (x, y) in a.iter().zip(b.iter()) {
                 assert_abs_diff_eq!(x, y, epsilon = 1e-12);
             }
@@ -408,9 +399,7 @@ mod tests {
         let v = pseudo(n, 2, 13);
         let pairs = window_pairs(n, 3);
         for eps in [Eps::ZERO, Eps(0.8), Eps::INF] {
-            let (out, _) =
-                masked_attention(&q.view(), &k.view(), &v.view(), &pairs, eps)
-                    .unwrap();
+            let (out, _) = masked_attention(&q.view(), &k.view(), &v.view(), &pairs, eps).unwrap();
             let reference = brute(&q, &k, &v, &pairs, eps);
             for (a, b) in out.iter().zip(reference.iter()) {
                 assert_abs_diff_eq!(a, b, epsilon = 1e-12);
@@ -425,10 +414,8 @@ mod tests {
         let k = ndarray::array![[2.0, 0.0], [2.0, 0.0], [0.0, 5.0]];
         let v = ndarray::array![[10.0], [30.0], [999.0]];
         let pairs = vec![(0, 0), (0, 1), (0, 2)];
-        let (out, covered) = masked_attention(
-            &q.view(), &k.view(), &v.view(), &pairs, Eps::ZERO,
-        )
-        .unwrap();
+        let (out, covered) =
+            masked_attention(&q.view(), &k.view(), &v.view(), &pairs, Eps::ZERO).unwrap();
         assert!(covered[0]);
         assert_abs_diff_eq!(out[(0, 0)], 20.0, epsilon = 1e-12);
     }
@@ -439,10 +426,7 @@ mod tests {
         let k = ndarray::array![[100.0], [-3.0], [5.0]];
         let v = ndarray::array![[3.0], [6.0], [9.0]];
         let pairs = vec![(0, 0), (0, 1), (0, 2), (1, 2)];
-        let (out, _) = masked_attention(
-            &q.view(), &k.view(), &v.view(), &pairs, Eps::INF,
-        )
-        .unwrap();
+        let (out, _) = masked_attention(&q.view(), &k.view(), &v.view(), &pairs, Eps::INF).unwrap();
         assert_abs_diff_eq!(out[(0, 0)], 6.0, epsilon = 1e-12);
         assert_abs_diff_eq!(out[(1, 0)], 9.0, epsilon = 1e-12);
     }
@@ -454,8 +438,7 @@ mod tests {
         let v = pseudo(2, 2, 23);
         let pairs = vec![(0, 0), (2, 1)];
         let (out, covered) =
-            masked_attention(&q.view(), &k.view(), &v.view(), &pairs, Eps::ONE)
-                .unwrap();
+            masked_attention(&q.view(), &k.view(), &v.view(), &pairs, Eps::ONE).unwrap();
         assert_eq!(covered, vec![true, false, true]);
         assert_eq!(out[(1, 0)], 0.0);
         assert_eq!(out[(1, 1)], 0.0);
@@ -492,9 +475,7 @@ mod tests {
         let q = pseudo(2, 2, 41);
         let k = pseudo(2, 2, 42);
         let v = pseudo(2, 2, 43);
-        let r = masked_attention(
-            &q.view(), &k.view(), &v.view(), &[(0, 5)], Eps::ONE,
-        );
+        let r = masked_attention(&q.view(), &k.view(), &v.view(), &[(0, 5)], Eps::ONE);
         assert!(r.is_err());
     }
 }

@@ -70,7 +70,8 @@ impl EncryptedBlob {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() < 12 + 16 {
             return Err(BruceError::Other(anyhow::anyhow!(
-                "EncryptedBlob: input too short ({} bytes)", bytes.len()
+                "EncryptedBlob: input too short ({} bytes)",
+                bytes.len()
             )));
         }
         let mut nonce = [0u8; 12];
@@ -112,7 +113,7 @@ mod tests {
         let key = key_from_passphrase("test");
         let pt = b"original";
         let mut blob = EncryptedBlob::encrypt(&key, pt).unwrap();
-        blob.ciphertext[0] ^= 0xFF;     // flip one byte
+        blob.ciphertext[0] ^= 0xFF; // flip one byte
         assert!(blob.decrypt(&key).is_err());
     }
 

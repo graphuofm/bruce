@@ -39,7 +39,10 @@ impl DpBudget {
     };
     /// Pure ε-DP (no slack).
     pub fn pure(epsilon: f64) -> Self {
-        Self { epsilon, delta: 0.0 }
+        Self {
+            epsilon,
+            delta: 0.0,
+        }
     }
 }
 
@@ -135,21 +138,28 @@ impl GaussianMechanism {
     /// Standard deviation of the noise.
     pub fn sigma(&self) -> f64 {
         debug_assert!(self.budget.delta > 0.0, "Gaussian mechanism requires δ > 0");
-        self.l2_sensitivity / self.budget.epsilon
-            * (2.0 * (1.25 / self.budget.delta).ln()).sqrt()
+        self.l2_sensitivity / self.budget.epsilon * (2.0 * (1.25 / self.budget.delta).ln()).sqrt()
     }
 
     /// Release a single scalar.
     pub fn release_scalar(&self, true_value: f64) -> f64 {
         let mut rng = self.make_rng();
-        let normal = Normal::new(0.0, self.sigma()).expect("σ > 0");
+        // Invariant: callers construct mechanisms through the validated
+        // Python/CLI surfaces (sensitivity > 0, eps > 0, 0 < delta < 1),
+        // so sigma() > 0. A violation is a programmer error, not user
+        // input, hence expect() rather than Result.
+        let normal = Normal::new(0.0, self.sigma()).expect("sigma > 0 invariant");
         true_value + normal.sample(&mut rng)
     }
 
     /// Release a vector with independent N(0, σ²) per entry.
     pub fn release_vector(&self, true_values: &[f64]) -> Vec<f64> {
         let mut rng = self.make_rng();
-        let normal = Normal::new(0.0, self.sigma()).expect("σ > 0");
+        // Invariant: callers construct mechanisms through the validated
+        // Python/CLI surfaces (sensitivity > 0, eps > 0, 0 < delta < 1),
+        // so sigma() > 0. A violation is a programmer error, not user
+        // input, hence expect() rather than Result.
+        let normal = Normal::new(0.0, self.sigma()).expect("sigma > 0 invariant");
         true_values
             .iter()
             .map(|&v| v + normal.sample(&mut rng))
@@ -186,10 +196,13 @@ mod tests {
 
     #[test]
     fn gaussian_sigma_matches_formula() {
-        let mech = GaussianMechanism::new(1.0, DpBudget {
-            epsilon: 1.0,
-            delta: 1e-5,
-        });
+        let mech = GaussianMechanism::new(
+            1.0,
+            DpBudget {
+                epsilon: 1.0,
+                delta: 1e-5,
+            },
+        );
         // σ = 1 · √(2 ln(125000)) ≈ √(2 · 11.736) ≈ √23.47 ≈ 4.84
         let expected = (2.0_f64 * (1.25_f64 / 1e-5).ln()).sqrt();
         assert!((mech.sigma() - expected).abs() < 1e-12);

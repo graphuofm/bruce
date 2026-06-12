@@ -179,7 +179,7 @@ mod tests {
     #[test]
     fn tropical_partition_reduce_correct() {
         // ε = 0: only argmax contributes
-        let scores = vec![1.0, 5.0, 2.0, 5.0, 3.0];
+        let scores = [1.0, 5.0, 2.0, 5.0, 3.0];
         let values: Vec<Array1<f64>> = (0..5).map(|i| array![i as f64]).collect();
         let p1 = PartialTriple::from_pairs(&scores[..2], &values[..2], Eps::ZERO);
         let p2 = PartialTriple::from_pairs(&scores[2..], &values[2..], Eps::ZERO);

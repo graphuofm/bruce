@@ -102,7 +102,6 @@ pub fn sum_eps(scores: &[f64], values: &[f64], eps: Eps) -> f64 {
     }
 }
 
-
 /// Certified-smoothing temperature (the PODS paper's smoothing
 /// corollary): the largest `ε` guaranteed to keep
 /// `‖A_ε − A_0‖∞ ≤ delta` on every input satisfying the *gap promise*
@@ -126,7 +125,13 @@ pub fn eps_star(
     n: usize,
     kappa: usize,
 ) -> Result<f64, crate::BruceError> {
-    if !(delta > 0.0) || !(gap > 0.0) || !(v_max > 0.0) {
+    if !delta.is_finite()
+        || delta <= 0.0
+        || !gap.is_finite()
+        || gap <= 0.0
+        || !v_max.is_finite()
+        || v_max <= 0.0
+    {
         return Err(crate::BruceError::InvalidArgument(format!(
             "eps_star needs delta, gap, v_max > 0 (got {delta}, {gap}, {v_max})",
         )));
@@ -186,7 +191,7 @@ mod tests {
     fn logsumexp_eps_at_one_matches_python() {
         // Python: log(exp(1) + exp(2) + exp(3)) ≈ 3.40760596...
         let lse = logsumexp_eps(&[1.0, 2.0, 3.0], Eps::ONE);
-        assert_abs_diff_eq!(lse, 3.4076059644443808, epsilon = 1e-12);
+        assert_abs_diff_eq!(lse, 3.407_605_964_444_381, epsilon = 1e-12);
     }
 
     #[test]
@@ -242,8 +247,10 @@ mod tests {
         let w = softmax_eps(&scores, Eps(e));
         let a_eps: f64 = w.iter().zip(values.iter()).map(|(w, v)| w * v).sum();
         let a_zero = (4.0 + 6.0) / 2.0; // argmax mean over the tie
-        assert!((a_eps - a_zero).abs() <= delta,
-                "|{a_eps} - {a_zero}| > {delta}");
+        assert!(
+            (a_eps - a_zero).abs() <= delta,
+            "|{a_eps} - {a_zero}| > {delta}"
+        );
         // and the evaluated bound itself certifies it
         let b = dequantization_bound(&scores, 8.0, Eps(e));
         assert!(b <= delta + 1e-15);
@@ -257,11 +264,12 @@ mod tests {
         let a_zero = 1.0; // unique argmax -> v[0]
         for eps in [0.1, 0.3, 1.0, 4.0] {
             let w = softmax_eps(&scores, Eps(eps));
-            let a_eps: f64 =
-                w.iter().zip(values.iter()).map(|(w, v)| w * v).sum();
+            let a_eps: f64 = w.iter().zip(values.iter()).map(|(w, v)| w * v).sum();
             let b = dequantization_bound(&scores, 1.0, Eps(eps));
-            assert!((a_eps - a_zero).abs() <= b,
-                    "eps={eps}: |{a_eps} - {a_zero}| > bound {b}");
+            assert!(
+                (a_eps - a_zero).abs() <= b,
+                "eps={eps}: |{a_eps} - {a_zero}| > bound {b}"
+            );
         }
     }
 

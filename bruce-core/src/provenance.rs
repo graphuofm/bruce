@@ -26,7 +26,7 @@ use crate::error::{BruceError, Result};
 pub fn canonical_digest(fact_id: &str, owner: &str, payload: &[u8]) -> [u8; 32] {
     let mut h = Sha256::new();
     h.update(fact_id.as_bytes());
-    h.update([0u8]);   // separator
+    h.update([0u8]); // separator
     h.update(owner.as_bytes());
     h.update([0u8]);
     h.update(payload);
@@ -152,10 +152,14 @@ impl SignedFact {
         let pk_v = hex::decode(&w.public_key_hex)
             .map_err(|e| BruceError::Other(anyhow::anyhow!("bad public key hex: {e}")))?;
         if sig_v.len() != 64 {
-            return Err(BruceError::Other(anyhow::anyhow!("signature must be 64 bytes")));
+            return Err(BruceError::Other(anyhow::anyhow!(
+                "signature must be 64 bytes"
+            )));
         }
         if pk_v.len() != 32 {
-            return Err(BruceError::Other(anyhow::anyhow!("public key must be 32 bytes")));
+            return Err(BruceError::Other(anyhow::anyhow!(
+                "public key must be 32 bytes"
+            )));
         }
         let mut signature = [0u8; 64];
         signature.copy_from_slice(&sig_v);

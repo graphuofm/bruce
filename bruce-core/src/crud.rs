@@ -320,8 +320,10 @@ mod tests {
     fn insert_then_output_matches_recompute() {
         let x = array![1.0, 0.0];
         let mut m = IncrementalMemory::new(x.view(), Eps::ONE, 1, Sim::Dot);
-        m.insert("a", array![1.0, 0.0].view(), array![10.0].view()).unwrap();
-        m.insert("b", array![0.0, 1.0].view(), array![20.0].view()).unwrap();
+        m.insert("a", array![1.0, 0.0].view(), array![10.0].view())
+            .unwrap();
+        m.insert("b", array![0.0, 1.0].view(), array![20.0].view())
+            .unwrap();
         let out = m.output();
         // softmax([1, 0]) = [e/(e+1), 1/(e+1)] → 10·e/(e+1) + 20·1/(e+1)
         let e = std::f64::consts::E;
@@ -340,7 +342,8 @@ mod tests {
                 &format!("k{i}"),
                 array![i as f64 * 0.1].view(),
                 array![i as f64].view(),
-            ).unwrap();
+            )
+            .unwrap();
         }
         // delete record 7
         m.delete("k7").unwrap();
@@ -356,12 +359,16 @@ mod tests {
                 &format!("k{i}"),
                 array![i as f64 * 0.1].view(),
                 array![i as f64].view(),
-            ).unwrap();
+            )
+            .unwrap();
         }
         let out_clean = m2.output();
         // bit-level identity up to floating-point precision
         let err = (out_after[0] - out_clean[0]).abs();
-        assert!(err < 1e-12, "expected bit-level identity, got err = {err:e}");
+        assert!(
+            err < 1e-12,
+            "expected bit-level identity, got err = {err:e}"
+        );
     }
 
     #[test]
@@ -369,18 +376,23 @@ mod tests {
         let x = array![1.0];
         let mut m = IncrementalMemory::new(x.view(), Eps::ONE, 1, Sim::Dot);
         // record 0 has score 1.0 ≫ others
-        m.insert("dominant", array![10.0].view(), array![1000.0].view()).unwrap();
+        m.insert("dominant", array![10.0].view(), array![1000.0].view())
+            .unwrap();
         for i in 1..20 {
             m.insert(
                 &format!("k{i}"),
                 array![0.01].view(),
                 array![i as f64].view(),
-            ).unwrap();
+            )
+            .unwrap();
         }
         let pre = m.output();
         m.delete("dominant").unwrap();
         let post = m.output();
-        assert!((pre[0] - post[0]).abs() > 1.0, "expected dominant delete to change output significantly");
+        assert!(
+            (pre[0] - post[0]).abs() > 1.0,
+            "expected dominant delete to change output significantly"
+        );
         assert!(m.n_rescales() >= 1, "expected at least one rescale");
     }
 
@@ -389,9 +401,12 @@ mod tests {
         // ε = 0 + Sim::Indicator: only exact-matching keys contribute
         let x = array![1.0];
         let mut m = IncrementalMemory::new(x.view(), Eps::ZERO, 1, Sim::Indicator);
-        m.insert("match1", array![1.0].view(), array![10.0].view()).unwrap();
-        m.insert("nomatch", array![0.0].view(), array![999.0].view()).unwrap();
-        m.insert("match2", array![1.0].view(), array![20.0].view()).unwrap();
+        m.insert("match1", array![1.0].view(), array![10.0].view())
+            .unwrap();
+        m.insert("nomatch", array![0.0].view(), array![999.0].view())
+            .unwrap();
+        m.insert("match2", array![1.0].view(), array![20.0].view())
+            .unwrap();
         // SQL: SELECT AVG(v) WHERE k = 1 -> (10 + 20) / 2 = 15
         let out = m.output();
         assert_eq!(out[0], 15.0);

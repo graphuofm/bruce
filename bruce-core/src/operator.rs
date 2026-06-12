@@ -93,7 +93,11 @@ impl F_eps {
                         .map(|j| {
                             let diff = x - &k.row(j);
                             let l2 = diff.dot(&diff);
-                            if l2 == 0.0 { 0.0 } else { f64::NEG_INFINITY }
+                            if l2 == 0.0 {
+                                0.0
+                            } else {
+                                f64::NEG_INFINITY
+                            }
                         })
                         .collect()
                 } else {
@@ -102,7 +106,11 @@ impl F_eps {
                         .map(|j| {
                             let diff = x - &k.row(j);
                             let l2 = diff.dot(&diff);
-                            if l2 == 0.0 { 0.0 } else { f64::NEG_INFINITY }
+                            if l2 == 0.0 {
+                                0.0
+                            } else {
+                                f64::NEG_INFINITY
+                            }
                         })
                         .collect()
                 }
@@ -122,12 +130,27 @@ impl F_eps {
     /// indicator / neg-squared keep the per-query API.
     pub fn attention_batch(
         &self,
-        q: &ArrayView2<'_, f64>,  // (B, d_k)
-        k: &ArrayView2<'_, f64>,  // (N, d_k)
-        v: &ArrayView2<'_, f64>,  // (N, d_v)
-    ) -> ndarray::Array2<f64> {
-        assert!(matches!(self.sim, Sim::Dot),
-                "attention_batch only supports Sim::Dot");
+        q: &ArrayView2<'_, f64>, // (B, d_k)
+        k: &ArrayView2<'_, f64>, // (N, d_k)
+        v: &ArrayView2<'_, f64>, // (N, d_v)
+    ) -> crate::error::Result<ndarray::Array2<f64>> {
+        if !matches!(self.sim, Sim::Dot) {
+            return Err(crate::error::BruceError::InvalidArgument(
+                "attention_batch only supports Sim::Dot".to_string(),
+            ));
+        }
+        if q.ncols() != k.ncols() {
+            return Err(crate::error::BruceError::DimensionMismatch {
+                expected: q.ncols(),
+                got: k.ncols(),
+            });
+        }
+        if v.nrows() != k.nrows() {
+            return Err(crate::error::BruceError::DimensionMismatch {
+                expected: k.nrows(),
+                got: v.nrows(),
+            });
+        }
         let b_count = q.nrows();
         let n = k.nrows();
         let d_v = v.ncols();
@@ -162,7 +185,7 @@ impl F_eps {
         for (i, r) in rows.into_iter().enumerate() {
             out.row_mut(i).assign(&r);
         }
-        out
+        Ok(out)
     }
 
     /// Standard attention: `A_ε(x, K, V) = softmax(scores / ε) · V`.
@@ -236,10 +259,7 @@ impl F_eps {
         let scores = self.scores(x, k);
         if self.eps.is_zero() {
             let m = scores.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-            return scores
-                .iter()
-                .filter(|&&s| s == m && s.is_finite())
-                .count() as f64;
+            return scores.iter().filter(|&&s| s == m && s.is_finite()).count() as f64;
         }
         let weights = softmax_eps(&scores, self.eps);
         weights.iter().filter(|&&w| w > 0.0).count() as f64

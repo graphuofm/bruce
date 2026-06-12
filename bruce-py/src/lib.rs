@@ -1,3 +1,9 @@
+#![allow(clippy::useless_conversion)]
+// ^ pyo3 0.22's #[pymethods] expansion inserts `.map_err(Into::into)`
+//   on PyResult-returning methods, which clippy >= 1.86 flags as a
+//   useless conversion. The lint fires inside macro-generated code we
+//   do not control; remove this allow when bumping pyo3.
+
 //! Python bindings for Bruce.
 //!
 //! Exposes the F_ε operator, the K/V memory, and the incremental
@@ -18,9 +24,9 @@
 // the openblas archive is dead-stripped and Python's `import bruce`
 // dies with `undefined symbol: cblas_dgemm`.
 #[cfg(feature = "blas")]
-extern crate openblas_src;
-#[cfg(feature = "blas")]
 extern crate blas_src;
+#[cfg(feature = "blas")]
+extern crate openblas_src;
 
 use bruce_core::anonymity::{AnonymityGuard as RsAnon, GuardOutcome as RsOutcome};
 use bruce_core::cascade::CascadePlan as RsCascade;
@@ -29,18 +35,19 @@ use bruce_core::distributed::{
 };
 use bruce_core::dp::{DpBudget, GaussianMechanism as RsGauss, LaplaceMechanism as RsLap};
 use bruce_core::encrypted::{key_from_passphrase, EncryptedBlob as RsBlob};
-use bruce_core::join::{hash_join as rs_hash_join, lftj_three as rs_lftj_three,
-                          sort_merge_join as rs_sort_merge};
+use bruce_core::join::{
+    hash_join as rs_hash_join, lftj_three as rs_lftj_three, sort_merge_join as rs_sort_merge,
+};
 use bruce_core::mask::{
     causal_pairs as rs_causal_pairs, masked_attention as rs_masked_attention,
     window_pairs as rs_window_pairs,
 };
 use bruce_core::memory::KvMemory as RsKv;
+use bruce_core::merkle::MerkleAuditLog as RsMerkle;
+use bruce_core::provenance::{Identity as RsIdentity, SignedFact as RsSigned};
 use bruce_core::semiring::{
     dequantization_bound as rs_dequantization_bound, eps_star as rs_eps_star,
 };
-use bruce_core::merkle::MerkleAuditLog as RsMerkle;
-use bruce_core::provenance::{Identity as RsIdentity, SignedFact as RsSigned};
 use bruce_core::sketch::{FeatureMap, FuzzyJoinSketch as RsSketch};
 use bruce_core::streaming::StreamingChainJoin as RsStream;
 use bruce_core::tree::{
@@ -65,6 +72,9 @@ fn parse_sim(name: &str) -> PyResult<Sim> {
         ))),
     }
 }
+
+/// `(keys, values)` pair returned by exact-read style accessors.
+type OptionalPair<'py> = Option<(Bound<'py, PyArray1<f64>>, Bound<'py, PyArray1<f64>>)>;
 
 fn parse_eps(value: f64) -> PyResult<Eps> {
     Eps::new(value).map_err(|e| PyValueError::new_err(e.to_string()))
@@ -94,7 +104,9 @@ impl PyOperator {
         k: PyReadonlyArray2<'py, f64>,
         v: PyReadonlyArray2<'py, f64>,
     ) -> Bound<'py, PyArray1<f64>> {
-        let out: Array1<f64> = self.inner.attention(&x.as_array(), &k.as_array(), &v.as_array());
+        let out: Array1<f64> = self
+            .inner
+            .attention(&x.as_array(), &k.as_array(), &v.as_array());
         out.into_pyarray_bound(py)
     }
 
@@ -120,9 +132,12 @@ impl PyOperator {
         q: PyReadonlyArray2<'py, f64>,
         k: PyReadonlyArray2<'py, f64>,
         v: PyReadonlyArray2<'py, f64>,
-    ) -> Bound<'py, numpy::PyArray2<f64>> {
-        let out = self.inner.attention_batch(&q.as_array(), &k.as_array(), &v.as_array());
-        out.into_pyarray_bound(py)
+    ) -> PyResult<Bound<'py, numpy::PyArray2<f64>>> {
+        let out = self
+            .inner
+            .attention_batch(&q.as_array(), &k.as_array(), &v.as_array())
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        Ok(out.into_pyarray_bound(py))
     }
 }
 
@@ -136,12 +151,7 @@ pub struct PyIncrementalMemory {
 impl PyIncrementalMemory {
     #[new]
     #[pyo3(signature = (query, eps=1.0, d_v=1, sim="dot"))]
-    fn new(
-        query: PyReadonlyArray1<'_, f64>,
-        eps: f64,
-        d_v: usize,
-        sim: &str,
-    ) -> PyResult<Self> {
+    fn new(query: PyReadonlyArray1<'_, f64>, eps: f64, d_v: usize, sim: &str) -> PyResult<Self> {
         let q = query.as_array();
         Ok(Self {
             inner: RsMem::new(q, parse_eps(eps)?, d_v, parse_sim(sim)?),
@@ -182,7 +192,10 @@ impl PyIncrementalMemory {
         if kk.nrows() != key_ids.len() || vv.nrows() != key_ids.len() {
             return Err(PyValueError::new_err(format!(
                 "row count mismatch: ids={}, k={}, v={}",
-                key_ids.len(), kk.nrows(), vv.nrows())));
+                key_ids.len(),
+                kk.nrows(),
+                vv.nrows()
+            )));
         }
         for (i, id) in key_ids.iter().enumerate() {
             self.inner
@@ -272,17 +285,15 @@ impl PyFuzzyJoinSketch {
     }
 
     /// Add one row to the sketch incrementally. O(d_phi * d_v).
-    fn add(
-        &mut self,
-        k: PyReadonlyArray1<'_, f64>,
-        v: PyReadonlyArray1<'_, f64>,
-    ) -> PyResult<()> {
+    fn add(&mut self, k: PyReadonlyArray1<'_, f64>, v: PyReadonlyArray1<'_, f64>) -> PyResult<()> {
         let k_arr = k.as_array();
         let v_arr = v.as_array();
         let d_phi = self.inner.numerator.nrows();
         if k_arr.len() != d_phi {
             return Err(PyValueError::new_err(format!(
-                "key dim mismatch: expected {}, got {}", d_phi, k_arr.len()
+                "key dim mismatch: expected {}, got {}",
+                d_phi,
+                k_arr.len()
             )));
         }
         self.inner.add(k_arr, v_arr);
@@ -299,7 +310,9 @@ impl PyFuzzyJoinSketch {
         let d_phi = self.inner.numerator.nrows();
         if x_arr.len() != d_phi {
             return Err(PyValueError::new_err(format!(
-                "query dim mismatch: expected {}, got {}", d_phi, x_arr.len()
+                "query dim mismatch: expected {}, got {}",
+                d_phi,
+                x_arr.len()
             )));
         }
         Ok(self.inner.query(x_arr).into_pyarray_bound(py))
@@ -353,7 +366,9 @@ impl PyMerkleAuditLog {
     /// Create an empty append-only log.
     #[new]
     fn new() -> Self {
-        Self { inner: RsMerkle::new() }
+        Self {
+            inner: RsMerkle::new(),
+        }
     }
 
     /// Append one entry (arbitrary bytes). Returns the entry's index.
@@ -376,7 +391,10 @@ impl PyMerkleAuditLog {
     /// the leaf to the root. Returns None if `idx` is out of range.
     fn proof<'py>(&self, py: Python<'py>, idx: usize) -> Option<Vec<Bound<'py, PyBytes>>> {
         self.inner.proof(idx).map(|hashes| {
-            hashes.into_iter().map(|h| PyBytes::new_bound(py, &h)).collect()
+            hashes
+                .into_iter()
+                .map(|h| PyBytes::new_bound(py, &h))
+                .collect()
         })
     }
 
@@ -425,7 +443,9 @@ impl PyIdentity {
     /// Generate a fresh identity from the OS CSPRNG.
     #[staticmethod]
     fn generate() -> Self {
-        Self { inner: RsIdentity::generate() }
+        Self {
+            inner: RsIdentity::generate(),
+        }
     }
 
     /// Reconstruct from 32-byte secret bytes (e.g. read from a KMS).
@@ -436,7 +456,9 @@ impl PyIdentity {
         }
         let mut s = [0u8; 32];
         s.copy_from_slice(&secret);
-        Ok(Self { inner: RsIdentity::from_secret(s) })
+        Ok(Self {
+            inner: RsIdentity::from_secret(s),
+        })
     }
 
     /// Export the 32-byte secret. **Handle with care.**
@@ -526,12 +548,22 @@ pub struct PyLaplaceMechanism {
 impl PyLaplaceMechanism {
     #[new]
     #[pyo3(signature = (l1_sensitivity, epsilon, seed=None))]
-    fn new(l1_sensitivity: f64, epsilon: f64, seed: Option<u64>) -> Self {
+    fn new(l1_sensitivity: f64, epsilon: f64, seed: Option<u64>) -> PyResult<Self> {
+        if !l1_sensitivity.is_finite() || l1_sensitivity <= 0.0 {
+            return Err(PyValueError::new_err(format!(
+                "l1_sensitivity must be a positive finite number, got {l1_sensitivity}",
+            )));
+        }
+        if !epsilon.is_finite() || epsilon <= 0.0 {
+            return Err(PyValueError::new_err(format!(
+                "epsilon must be a positive finite number, got {epsilon}",
+            )));
+        }
         let mut m = RsLap::new(l1_sensitivity, DpBudget::pure(epsilon));
         if let Some(s) = seed {
             m = m.with_seed(s);
         }
-        Self { inner: m }
+        Ok(Self { inner: m })
     }
 
     /// Release a single scalar with ε-DP noise added.
@@ -566,14 +598,28 @@ pub struct PyGaussianMechanism {
 impl PyGaussianMechanism {
     #[new]
     #[pyo3(signature = (l2_sensitivity, epsilon, delta=1e-5, seed=None))]
-    fn new(l2_sensitivity: f64, epsilon: f64, delta: f64,
-           seed: Option<u64>) -> Self {
+    fn new(l2_sensitivity: f64, epsilon: f64, delta: f64, seed: Option<u64>) -> PyResult<Self> {
+        if !l2_sensitivity.is_finite() || l2_sensitivity <= 0.0 {
+            return Err(PyValueError::new_err(format!(
+                "l2_sensitivity must be a positive finite number, got {l2_sensitivity}",
+            )));
+        }
+        if !epsilon.is_finite() || epsilon <= 0.0 {
+            return Err(PyValueError::new_err(format!(
+                "epsilon must be a positive finite number, got {epsilon}",
+            )));
+        }
+        if !delta.is_finite() || delta <= 0.0 || delta >= 1.0 {
+            return Err(PyValueError::new_err(format!(
+                "delta must lie in (0, 1) for the Gaussian mechanism, got {delta}",
+            )));
+        }
         let budget = DpBudget { epsilon, delta };
         let mut m = RsGauss::new(l2_sensitivity, budget);
         if let Some(s) = seed {
             m = m.with_seed(s);
         }
-        Self { inner: m }
+        Ok(Self { inner: m })
     }
 
     /// Release a single scalar.
@@ -673,8 +719,8 @@ impl PyEncryptedBlob {
         }
         let mut k = [0u8; 32];
         k.copy_from_slice(&key);
-        let inner = RsBlob::encrypt(&k, plaintext)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let inner =
+            RsBlob::encrypt(&k, plaintext).map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self { inner })
     }
 
@@ -685,7 +731,9 @@ impl PyEncryptedBlob {
         }
         let mut k = [0u8; 32];
         k.copy_from_slice(&key);
-        let pt = self.inner.decrypt(&k)
+        let pt = self
+            .inner
+            .decrypt(&k)
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(PyBytes::new_bound(py, &pt))
     }
@@ -698,8 +746,7 @@ impl PyEncryptedBlob {
     /// Parse from wire format.
     #[staticmethod]
     fn from_bytes(bytes: &[u8]) -> PyResult<Self> {
-        let inner = RsBlob::from_bytes(bytes)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let inner = RsBlob::from_bytes(bytes).map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(Self { inner })
     }
 
@@ -731,7 +778,9 @@ pub struct PyKvMemory {
 impl PyKvMemory {
     #[new]
     fn new(d_k: usize, d_v: usize) -> Self {
-        Self { inner: RsKv::new(d_k, d_v) }
+        Self {
+            inner: RsKv::new(d_k, d_v),
+        }
     }
 
     fn write(
@@ -754,9 +803,7 @@ impl PyKvMemory {
 
     /// Look up a fact by id (ε=0 read). Returns `(k, v)` or None if
     /// not present or deleted.
-    fn read_exact<'py>(
-        &self, py: Python<'py>, fact_id: &str,
-    ) -> Option<(Bound<'py, PyArray1<f64>>, Bound<'py, PyArray1<f64>>)> {
+    fn read_exact<'py>(&self, py: Python<'py>, fact_id: &str) -> OptionalPair<'py> {
         self.inner.read_exact(fact_id).map(|(k, v)| {
             (
                 k.clone().into_pyarray_bound(py),
@@ -786,7 +833,8 @@ impl PyKvMemory {
     /// Persist the memory to a Parquet file. Audit log is written to
     /// `<path>.audit.jsonl` alongside.
     fn save_parquet(&self, path: &str) -> PyResult<()> {
-        self.inner.save_parquet(path)
+        self.inner
+            .save_parquet(path)
             .map_err(|e| PyValueError::new_err(e.to_string()))
     }
 
@@ -820,25 +868,23 @@ pub struct PyPartialTriple {
 impl PyPartialTriple {
     /// Build from per-row scores and value vectors.
     #[staticmethod]
-    fn from_pairs(
-        scores: Vec<f64>,
-        values: Vec<Vec<f64>>,
-        eps: f64,
-    ) -> PyResult<Self> {
+    fn from_pairs(scores: Vec<f64>, values: Vec<Vec<f64>>, eps: f64) -> PyResult<Self> {
         let eps_obj = Eps::new(eps).map_err(|e| PyValueError::new_err(e.to_string()))?;
-        let vals: Vec<Array1<f64>> = values.into_iter()
-            .map(|v| Array1::from(v))
-            .collect();
+        let vals: Vec<Array1<f64>> = values.into_iter().map(Array1::from).collect();
         Ok(Self {
             inner: RsPartial::from_pairs(&scores, &vals, eps_obj),
         })
     }
 
     #[getter]
-    fn m_local(&self) -> f64 { self.inner.m_local }
+    fn m_local(&self) -> f64 {
+        self.inner.m_local
+    }
 
     #[getter]
-    fn den_local(&self) -> f64 { self.inner.den_local }
+    fn den_local(&self) -> f64 {
+        self.inner.den_local
+    }
 
     fn num_local<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f64>> {
         self.inner.num_local.clone().into_pyarray_bound(py)
@@ -848,15 +894,12 @@ impl PyPartialTriple {
 /// Combine partial triples from many shards into a single triple.
 #[pyfunction]
 #[pyo3(signature = (partials, eps))]
-fn combine(
-    partials: Vec<PyRef<'_, PyPartialTriple>>,
-    eps: f64,
-) -> PyResult<PyPartialTriple> {
+fn combine(partials: Vec<PyRef<'_, PyPartialTriple>>, eps: f64) -> PyResult<PyPartialTriple> {
     let eps_obj = Eps::new(eps).map_err(|e| PyValueError::new_err(e.to_string()))?;
-    let parts: Vec<RsPartial> = partials.iter()
-        .map(|p| p.inner.clone())
-        .collect();
-    Ok(PyPartialTriple { inner: rs_combine(&parts, eps_obj) })
+    let parts: Vec<RsPartial> = partials.iter().map(|p| p.inner.clone()).collect();
+    Ok(PyPartialTriple {
+        inner: rs_combine(&parts, eps_obj),
+    })
 }
 
 /// Finalize a combined triple into the attention output A_ε.
@@ -883,7 +926,9 @@ pub struct PyStreamingChainJoin {
 impl PyStreamingChainJoin {
     #[new]
     fn new() -> Self {
-        Self { inner: RsStream::new() }
+        Self {
+            inner: RsStream::new(),
+        }
     }
 
     /// New R-tuple (a, b) arrives. Returns count of new join answers
@@ -941,8 +986,10 @@ fn hash_join_indices<'py>(
         li.push(l as i64);
         ri.push(r as i64);
     }
-    (Array1::from_vec(li).into_pyarray_bound(py),
-     Array1::from_vec(ri).into_pyarray_bound(py))
+    (
+        Array1::from_vec(li).into_pyarray_bound(py),
+        Array1::from_vec(ri).into_pyarray_bound(py),
+    )
 }
 
 /// Count of matching pairs for a hash join, without materialising
@@ -998,12 +1045,14 @@ fn hash_join_reduce<'py>(
     let want_right = matches!(agg_kind, "sum_right" | "min_right" | "max_right");
 
     if want_left && left_values.is_none() {
-        return Err(PyValueError::new_err(
-            format!("agg_kind={agg_kind} requires left_values=")));
+        return Err(PyValueError::new_err(format!(
+            "agg_kind={agg_kind} requires left_values="
+        )));
     }
     if want_right && right_values.is_none() {
-        return Err(PyValueError::new_err(
-            format!("agg_kind={agg_kind} requires right_values=")));
+        return Err(PyValueError::new_err(format!(
+            "agg_kind={agg_kind} requires right_values="
+        )));
     }
 
     let lv = left_values.as_ref().map(|a| a.as_array());
@@ -1011,21 +1060,22 @@ fn hash_join_reduce<'py>(
     if let Some(lv) = lv.as_ref() {
         if lv.len() != left.len() {
             return Err(PyValueError::new_err(
-                "left_values length must match left keys"));
+                "left_values length must match left keys",
+            ));
         }
     }
     if let Some(rv) = rv.as_ref() {
         if rv.len() != right.len() {
             return Err(PyValueError::new_err(
-                "right_values length must match right keys"));
+                "right_values length must match right keys",
+            ));
         }
     }
 
     // Build on left; for sum_left/min_left/max_left we need to fold the
     // left values per matching probe — bucket left rows by key.
     // `buckets[k]` = list of row indices on the build side.
-    let mut buckets: AHashMap<i64, Vec<usize>> =
-        AHashMap::with_capacity(left.len());
+    let mut buckets: AHashMap<i64, Vec<usize>> = AHashMap::with_capacity(left.len());
     for (i, &k) in left.iter().enumerate() {
         buckets.entry(k).or_default().push(i);
     }
@@ -1048,12 +1098,8 @@ fn hash_join_reduce<'py>(
                 };
                 match agg_kind {
                     "sum_left" | "sum_right" => sum += v_for_pair,
-                    "min_left" | "min_right" => {
-                        if v_for_pair < min_v { min_v = v_for_pair }
-                    }
-                    "max_left" | "max_right" => {
-                        if v_for_pair > max_v { max_v = v_for_pair }
-                    }
+                    "min_left" | "min_right" if v_for_pair < min_v => min_v = v_for_pair,
+                    "max_left" | "max_right" if v_for_pair > max_v => max_v = v_for_pair,
                     _ => {}
                 }
             }
@@ -1063,13 +1109,14 @@ fn hash_join_reduce<'py>(
     let obj: PyObject = match agg_kind {
         "count" => count.into_py(py),
         "sum_left" | "sum_right" => sum.into_py(py),
-        "min_left" | "min_right" =>
-            (if any { min_v } else { f64::NAN }).into_py(py),
-        "max_left" | "max_right" =>
-            (if any { max_v } else { f64::NAN }).into_py(py),
-        _ => return Err(PyValueError::new_err(format!(
+        "min_left" | "min_right" => (if any { min_v } else { f64::NAN }).into_py(py),
+        "max_left" | "max_right" => (if any { max_v } else { f64::NAN }).into_py(py),
+        _ => {
+            return Err(PyValueError::new_err(format!(
                 "unknown agg_kind {agg_kind:?}; use count|sum_left|sum_right|\
-                 min_left|min_right|max_left|max_right"))),
+                 min_left|min_right|max_left|max_right"
+            )))
+        }
     };
     Ok(obj)
 }
@@ -1085,9 +1132,7 @@ fn sort_merge_join(left: Vec<i64>, right: Vec<i64>) -> Vec<(usize, usize)> {
 /// triples (i, j, k) such that a[i] == b[j] == c[k]. Achieves the
 /// AGM-optimal O(N^{3/2}) for triangle queries.
 #[pyfunction]
-fn lftj_three(
-    a: Vec<i64>, b: Vec<i64>, c: Vec<i64>,
-) -> Vec<(usize, usize, usize)> {
+fn lftj_three(a: Vec<i64>, b: Vec<i64>, c: Vec<i64>) -> Vec<(usize, usize, usize)> {
     rs_lftj_three(&a, &b, &c)
 }
 
@@ -1183,8 +1228,11 @@ fn balanced_binary_tree(n: usize) -> Vec<i64> {
 
 /// k-ary balanced tree: `parents[i] = (i-1)/k`.
 #[pyfunction]
-fn k_ary_balanced_tree(n: usize, k: usize) -> Vec<i64> {
-    rs_k_ary_balanced_tree(n, k)
+fn k_ary_balanced_tree(n: usize, k: usize) -> PyResult<Vec<i64>> {
+    if k == 0 {
+        return Err(PyValueError::new_err("k-ary tree needs k >= 1"));
+    }
+    Ok(rs_k_ary_balanced_tree(n, k))
 }
 
 /// Star tree: one root, N-1 leaves all pointing to it.
@@ -1235,9 +1283,8 @@ fn masked_attention<'py>(
         }
         ps.push((i as usize, j as usize));
     }
-    let (out, covered) =
-        rs_masked_attention(&q.as_array(), &k.as_array(), &v.as_array(), &ps, eps)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let (out, covered) = rs_masked_attention(&q.as_array(), &k.as_array(), &v.as_array(), &ps, eps)
+        .map_err(|e| PyValueError::new_err(e.to_string()))?;
     Ok((out.into_pyarray_bound(py), covered))
 }
 
@@ -1274,8 +1321,7 @@ fn window_pairs(py: Python<'_>, n: usize, w: usize) -> Bound<'_, PyArray2<i64>> 
 #[pyfunction]
 #[pyo3(signature = (delta, gap, v_max, n, kappa=1))]
 fn eps_star(delta: f64, gap: f64, v_max: f64, n: usize, kappa: usize) -> PyResult<f64> {
-    rs_eps_star(delta, gap, v_max, n, kappa)
-        .map_err(|e| PyValueError::new_err(e.to_string()))
+    rs_eps_star(delta, gap, v_max, n, kappa).map_err(|e| PyValueError::new_err(e.to_string()))
 }
 
 /// Evaluate the quantitative-dequantization bound

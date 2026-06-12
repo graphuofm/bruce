@@ -113,13 +113,14 @@ async fn auth_middleware(
     if p == "/health" || p == "/metrics" {
         return Ok(next.run(req).await);
     }
-    let auth = req.headers().get(axum::http::header::AUTHORIZATION)
+    let auth = req
+        .headers()
+        .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
-    let token = auth.strip_prefix("Bearer ").ok_or((
-        StatusCode::UNAUTHORIZED,
-        "missing Bearer token".into(),
-    ))?;
+    let token = auth
+        .strip_prefix("Bearer ")
+        .ok_or((StatusCode::UNAUTHORIZED, "missing Bearer token".into()))?;
     let mut validation = Validation::new(jsonwebtoken::Algorithm::HS256);
     validation.set_required_spec_claims(&["exp", "sub"]);
     validation.leeway = 0;
@@ -153,14 +154,14 @@ struct Inner {
 /// holding the main RwLock.
 #[derive(Default)]
 struct Metrics {
-    requests_total:    std::sync::atomic::AtomicU64,
-    writes_total:      std::sync::atomic::AtomicU64,
+    requests_total: std::sync::atomic::AtomicU64,
+    writes_total: std::sync::atomic::AtomicU64,
     writes_fail_total: std::sync::atomic::AtomicU64,
-    reads_total:       std::sync::atomic::AtomicU64,
-    reads_404_total:   std::sync::atomic::AtomicU64,
-    deletes_total:     std::sync::atomic::AtomicU64,
+    reads_total: std::sync::atomic::AtomicU64,
+    reads_404_total: std::sync::atomic::AtomicU64,
+    deletes_total: std::sync::atomic::AtomicU64,
     deletes_fail_total: std::sync::atomic::AtomicU64,
-    queries_total:     std::sync::atomic::AtomicU64,
+    queries_total: std::sync::atomic::AtomicU64,
     started_unix_seconds: std::sync::atomic::AtomicU64,
 }
 
@@ -177,8 +178,16 @@ impl Metrics {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 enum WalRecord {
-    Write { id: String, k: Vec<f64>, v: Vec<f64>, owner: String },
-    Delete { id: String, owner: String },
+    Write {
+        id: String,
+        k: Vec<f64>,
+        v: Vec<f64>,
+        owner: String,
+    },
+    Delete {
+        id: String,
+        owner: String,
+    },
 }
 
 impl Inner {
@@ -266,7 +275,10 @@ async fn write_fact(
     g.audit
         .append(format!("WRITE {} by {}", req.fact_id, req.owner).as_bytes());
     g.append_wal(&WalRecord::Write {
-        id: req.fact_id, k: req.k, v: req.v, owner: req.owner,
+        id: req.fact_id,
+        k: req.k,
+        v: req.v,
+        owner: req.owner,
     });
     Metrics::bump(&st.metrics.writes_total);
     Ok(Json("ok"))
@@ -302,10 +314,9 @@ async fn delete_fact(
         Metrics::bump(&st.metrics.deletes_fail_total);
         return Err((StatusCode::FORBIDDEN, e.to_string()));
     }
-    g.audit.append(format!("DELETE {} by {}", id, q.owner).as_bytes());
-    g.append_wal(&WalRecord::Delete {
-        id, owner: q.owner,
-    });
+    g.audit
+        .append(format!("DELETE {} by {}", id, q.owner).as_bytes());
+    g.append_wal(&WalRecord::Delete { id, owner: q.owner });
     Metrics::bump(&st.metrics.deletes_total);
     Ok(Json("ok"))
 }
@@ -324,7 +335,7 @@ async fn metrics_endpoint(State(st): State<AppState>) -> String {
     let audit_len = g.audit.len() as u64;
     drop(g);
     format!(
-"# HELP bruce_requests_total HTTP requests handled
+        "# HELP bruce_requests_total HTTP requests handled
 # TYPE bruce_requests_total counter
 bruce_requests_total {req}
 # HELP bruce_writes_total successful writes
@@ -361,15 +372,18 @@ bruce_audit_length {audit_len}
 # TYPE bruce_uptime_seconds counter
 bruce_uptime_seconds {uptime}
 ",
-        req=Metrics::get(&m.requests_total),
-        w=Metrics::get(&m.writes_total),
-        wf=Metrics::get(&m.writes_fail_total),
-        r=Metrics::get(&m.reads_total),
-        r404=Metrics::get(&m.reads_404_total),
-        d=Metrics::get(&m.deletes_total),
-        df=Metrics::get(&m.deletes_fail_total),
-        q=Metrics::get(&m.queries_total),
-        alive=alive, total=total, audit_len=audit_len, uptime=uptime,
+        req = Metrics::get(&m.requests_total),
+        w = Metrics::get(&m.writes_total),
+        wf = Metrics::get(&m.writes_fail_total),
+        r = Metrics::get(&m.reads_total),
+        r404 = Metrics::get(&m.reads_404_total),
+        d = Metrics::get(&m.deletes_total),
+        df = Metrics::get(&m.deletes_fail_total),
+        q = Metrics::get(&m.queries_total),
+        alive = alive,
+        total = total,
+        audit_len = audit_len,
+        uptime = uptime,
     )
 }
 
@@ -388,18 +402,21 @@ async fn query_attention(
 ) -> Result<Json<Vec<f64>>, (StatusCode, String)> {
     Metrics::bump(&st.metrics.requests_total);
     Metrics::bump(&st.metrics.queries_total);
-    let eps = Eps::new(req.eps)
-        .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+    let eps = Eps::new(req.eps).map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
     let sim = parse_sim(&req.sim)?;
     let x = Array1::from(req.x);
     if x.len() != st.d_k {
-        return Err((StatusCode::BAD_REQUEST,
-                    format!("expected x of dim {}, got {}", st.d_k, x.len())));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            format!("expected x of dim {}, got {}", st.d_k, x.len()),
+        ));
     }
     let g = st.inner.read().await;
     // hot path: KvMemory::attention_query iterates rows in place; no
     // intermediate (Array2 K, Array2 V) snapshot is allocated.
-    let out = g.mem.attention_query(x.view(), eps, sim)
+    let out = g
+        .mem
+        .attention_query(x.view(), eps, sim)
         .unwrap_or_else(|| Array1::<f64>::zeros(st.d_v));
     Ok(Json(out.to_vec()))
 }
@@ -414,10 +431,7 @@ async fn audit_length(State(st): State<AppState>) -> Json<usize> {
     Json(g.audit.len())
 }
 
-async fn audit_append(
-    State(st): State<AppState>,
-    Json(body): Json<AppendBody>,
-) -> Json<usize> {
+async fn audit_append(State(st): State<AppState>, Json(body): Json<AppendBody>) -> Json<usize> {
     let mut g = st.inner.write().await;
     let idx = g.audit.append(body.payload.as_bytes());
     Json(idx)
@@ -473,26 +487,36 @@ async fn main() -> Result<()> {
                     Err(e) => tracing::warn!("WAL bad line: {}", e),
                 }
             }
-            tracing::info!("replayed {} writes + {} deletes from WAL",
-                            n_replayed_writes, n_replayed_deletes);
+            tracing::info!(
+                "replayed {} writes + {} deletes from WAL",
+                n_replayed_writes,
+                n_replayed_deletes
+            );
         }
         // open append-only handle for new writes
         Some(std::sync::Mutex::new(
             std::fs::OpenOptions::new()
-                .create(true).append(true)
-                .open(&cli.wal_path)?))
+                .create(true)
+                .append(true)
+                .open(&cli.wal_path)?,
+        ))
     } else {
         None
     };
 
-    let inner = Inner { mem, audit, wal: wal_handle };
+    let inner = Inner {
+        mem,
+        audit,
+        wal: wal_handle,
+    };
     let metrics = Arc::new(Metrics::default());
     metrics.started_unix_seconds.store(
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0),
-        std::sync::atomic::Ordering::Relaxed);
+        std::sync::atomic::Ordering::Relaxed,
+    );
     let state = AppState {
         inner: Arc::new(RwLock::new(inner)),
         d_k: cli.d_k,
@@ -520,28 +544,33 @@ async fn main() -> Result<()> {
         let jwt_state = JwtState {
             key: Arc::new(DecodingKey::from_secret(cli.jwt_secret.as_bytes())),
         };
-        app = app.layer(middleware::from_fn_with_state(
-            jwt_state,
-            auth_middleware,
-        ));
-        tracing::info!("JWT auth enabled (HS256, {}-byte secret)",
-                       cli.jwt_secret.len());
+        app = app.layer(middleware::from_fn_with_state(jwt_state, auth_middleware));
+        tracing::info!(
+            "JWT auth enabled (HS256, {}-byte secret)",
+            cli.jwt_secret.len()
+        );
     } else {
         tracing::warn!("JWT auth DISABLED (--jwt-secret empty); plain HTTP only");
     }
 
-    let addr: std::net::SocketAddr = cli.addr.parse()
+    let addr: std::net::SocketAddr = cli
+        .addr
+        .parse()
         .map_err(|e| anyhow::anyhow!("bad --addr {}: {e}", cli.addr))?;
     let tls_on = !cli.tls_cert.is_empty() && !cli.tls_key.is_empty();
-    tracing::info!("bruce-server v{} listening on {}{}",
-                   env!("CARGO_PKG_VERSION"),
-                   cli.addr,
-                   if tls_on { " (TLS)" } else { " (plaintext)" });
+    tracing::info!(
+        "bruce-server v{} listening on {}{}",
+        env!("CARGO_PKG_VERSION"),
+        cli.addr,
+        if tls_on { " (TLS)" } else { " (plaintext)" }
+    );
     if tls_on {
         let tls_cfg = axum_server::tls_rustls::RustlsConfig::from_pem_file(
-            cli.tls_cert.clone(), cli.tls_key.clone(),
-        ).await
-            .map_err(|e| anyhow::anyhow!("TLS load: {e}"))?;
+            cli.tls_cert.clone(),
+            cli.tls_key.clone(),
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!("TLS load: {e}"))?;
         axum_server::bind_rustls(addr, tls_cfg)
             .serve(app.into_make_service())
             .await?;

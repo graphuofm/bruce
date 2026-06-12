@@ -6,9 +6,9 @@
 //! interpolates between
 //!
 //! * `ε = 0`   ↦  the tropical (max-plus) semiring →
-//!                exact equi-join with aggregation (SQL `SELECT ... GROUP BY`);
+//!   exact equi-join with aggregation (SQL `SELECT ... GROUP BY`);
 //! * `ε = 1`   ↦  the log-semiring →
-//!                standard softmax attention `A = softmax(QKᵀ) V`;
+//!   standard softmax attention `A = softmax(QKᵀ) V`;
 //! * `ε → ∞`   ↦  the uniform-average limit.
 //!
 //! The interpolation is **Maslov dequantization**: as ε → 0⁺,
@@ -28,10 +28,10 @@
 //! * [`semiring`] — log-semiring + tropical semiring + their dequantisation
 //! * [`memory`]   — the K/V memory backing CRUD operations
 //! * [`crud`]     — INSERT / UPDATE / DELETE via the group structure of Σ
-//!                  (Lemma A, the O(d)-per-record exact unlearning algorithm)
+//!   (Lemma A, the O(d)-per-record exact unlearning algorithm)
 //! * [`join`]     — hash-, sort-merge-, Leapfrog-Triejoin-style equi-join
 //! * [`distributed`] — partition-reduce (Lemma B): F_ε is exact under
-//!                     partitioning of the K/V memory across nodes
+//!   partitioning of the K/V memory across nodes
 //! * [`types`]    — public types: `Score`, `Eps`, `Sim`, `Aggregator`
 //!
 //! ## Quickstart
@@ -58,9 +58,9 @@
 // libopenblas.a and ndarray's `cargo:rustc-link-lib=cblas` directives
 // fail at load time with `undefined symbol: cblas_dgemm`.
 #[cfg(feature = "blas")]
-extern crate openblas_src;
-#[cfg(feature = "blas")]
 extern crate blas_src;
+#[cfg(feature = "blas")]
+extern crate openblas_src;
 
 pub mod anonymity;
 pub mod cascade;
@@ -83,7 +83,7 @@ pub mod types;
 
 pub use crud::{IncrementalMemory, IncrementalState};
 pub use error::{BruceError, Result};
-pub use memory::KvMemory;
 pub use mask::masked_attention;
+pub use memory::KvMemory;
 pub use operator::F_eps;
 pub use types::{Aggregator, Eps, Score, Sim};

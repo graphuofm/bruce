@@ -5,6 +5,7 @@ members = ["bruce-core", "bruce-py", "bruce-cli", "bruce-server"]
 [workspace.package]
 version       = "0.1.0"
 edition       = "2021"
+rust-version  = "1.81"   # MSRV; verified by the CI msrv job
 authors       = ["Jiacheng Ding <jding2@memphis.edu>"]
 license       = "Apache-2.0"
 repository    = "https://github.com/jding/bruce"
@@ -74,4 +75,9 @@ hex            = "0.4"
 opt-level   = 3
 lto         = "fat"
 codegen-units = 1
-panic       = "abort"
+# NOTE: panic = "unwind" (the default) is REQUIRED here. bruce-py is a
+# cdylib loaded into a host Python process: with panic = "abort", any
+# Rust panic kills the entire interpreter. With unwind, PyO3 catches
+# the panic at the FFI boundary and raises pyo3_runtime.PanicException
+# instead. Library code should still never panic on user input (all
+# fallible paths return Result / BruceError); this is defense in depth.

@@ -114,7 +114,9 @@ pub fn tree_causal_attention(
 /// `parents[i] = i - 1` for i ≥ 1, `parents[0] = -1`. Recovers
 /// standard causal (lower-triangular) attention; O(N²·d) total work.
 pub fn chain_tree(n: usize) -> Vec<i64> {
-    (0..n).map(|i| if i == 0 { -1 } else { i as i64 - 1 }).collect()
+    (0..n)
+        .map(|i| if i == 0 { -1 } else { i as i64 - 1 })
+        .collect()
 }
 
 /// Heap-like balanced binary tree: `parents[i] = (i - 1) / 2`,
@@ -154,8 +156,7 @@ mod tests {
         let v = array![[10.0], [20.0], [30.0], [40.0]];
         let parents = star_tree(4);
         let out =
-            tree_causal_attention(&q.view(), &k.view(), &v.view(), &parents, Eps::ONE)
-                .unwrap();
+            tree_causal_attention(&q.view(), &k.view(), &v.view(), &parents, Eps::ONE).unwrap();
         // row 0 attends only to itself
         assert_abs_diff_eq!(out[(0, 0)], 10.0, epsilon = 1e-12);
         // row 1: path=[1,0], scores=[k₁·q₁, k₀·q₁]=[1.0, 0.0]
@@ -173,8 +174,7 @@ mod tests {
         let v = array![[10.0], [20.0], [30.0]];
         let parents = chain_tree(3);
         let out =
-            tree_causal_attention(&q.view(), &k.view(), &v.view(), &parents, Eps::ONE)
-                .unwrap();
+            tree_causal_attention(&q.view(), &k.view(), &v.view(), &parents, Eps::ONE).unwrap();
         // row 0 sees only itself
         assert_abs_diff_eq!(out[(0, 0)], 10.0, epsilon = 1e-12);
         // row 1: scores=[2, 2]; uniform weights → (20+10)/2 = 15

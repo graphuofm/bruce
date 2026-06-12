@@ -79,8 +79,14 @@ impl<K: Eq + std::hash::Hash + Clone> StreamingChainJoin<K> {
     /// New S-tuple `(b, c)` arrives.
     pub fn arrive_s(&mut self, b: K, c: K) -> u64 {
         let s_id = self.s_by_b.values().map(|v| v.len()).sum::<usize>();
-        self.s_by_b.entry(b.clone()).or_default().push((c.clone(), s_id));
-        self.s_by_c.entry(c.clone()).or_default().push((b.clone(), s_id));
+        self.s_by_b
+            .entry(b.clone())
+            .or_default()
+            .push((c.clone(), s_id));
+        self.s_by_c
+            .entry(c.clone())
+            .or_default()
+            .push((b.clone(), s_id));
         // S-arrival joins with R(*, b) and T(c, *)
         let n_r = self.r_by_b.get(&b).map(|v| v.len() as u64).unwrap_or(0);
         let n_t = self.t_by_c.get(&c).map(|v| v.len() as u64).unwrap_or(0);

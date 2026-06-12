@@ -218,16 +218,8 @@ impl KvMemory {
         let v_field = Arc::new(Field::new("item", DataType::Float64, true));
         Arc::new(Schema::new(vec![
             Field::new("fact_id", DataType::Utf8, false),
-            Field::new(
-                "k",
-                DataType::FixedSizeList(k_field, d_k as i32),
-                false,
-            ),
-            Field::new(
-                "v",
-                DataType::FixedSizeList(v_field, d_v as i32),
-                false,
-            ),
+            Field::new("k", DataType::FixedSizeList(k_field, d_k as i32), false),
+            Field::new("v", DataType::FixedSizeList(v_field, d_v as i32), false),
             Field::new("owner", DataType::Utf8, false),
             Field::new("written_at", DataType::Float64, false),
             Field::new("deleted", DataType::Boolean, false),
@@ -250,7 +242,9 @@ impl KvMemory {
         let mut del_b = BooleanBuilder::new();
 
         for id in self.insertion_order.iter() {
-            let Some(row) = self.rows.get(id) else { continue };
+            let Some(row) = self.rows.get(id) else {
+                continue;
+            };
             id_b.append_value(id);
             for v in row.k.iter() {
                 k_b.values().append_value(*v);
@@ -310,7 +304,8 @@ impl KvMemory {
 
         // d_k, d_v from the schema's FixedSizeList width
         let schema = builder.schema().clone();
-        let d_k = match schema.field_with_name("k")
+        let d_k = match schema
+            .field_with_name("k")
             .map_err(|e| BruceError::Other(anyhow::anyhow!("schema: {e}")))?
             .data_type()
         {
@@ -321,7 +316,8 @@ impl KvMemory {
                 )));
             }
         };
-        let d_v = match schema.field_with_name("v")
+        let d_v = match schema
+            .field_with_name("v")
             .map_err(|e| BruceError::Other(anyhow::anyhow!("schema: {e}")))?
             .data_type()
         {
@@ -339,8 +335,7 @@ impl KvMemory {
             .map_err(|e| BruceError::Other(anyhow::anyhow!("parquet build: {e}")))?;
 
         for batch_res in reader {
-            let batch = batch_res
-                .map_err(|e| BruceError::Other(anyhow::anyhow!("batch: {e}")))?;
+            let batch = batch_res.map_err(|e| BruceError::Other(anyhow::anyhow!("batch: {e}")))?;
             let ids = batch
                 .column_by_name("fact_id")
                 .and_then(|c| c.as_any().downcast_ref::<StringArray>())
@@ -460,7 +455,11 @@ impl KvMemory {
                         let d = x[i] - row.k[i];
                         d2 += d * d;
                     }
-                    if d2 == 0.0 { 0.0 } else { f64::NEG_INFINITY }
+                    if d2 == 0.0 {
+                        0.0
+                    } else {
+                        f64::NEG_INFINITY
+                    }
                 }
             };
             if s > m {
@@ -496,7 +495,11 @@ impl KvMemory {
                             let d = x[i] - row.k[i];
                             d2 += d * d;
                         }
-                        if d2 == 0.0 { 0.0 } else { f64::NEG_INFINITY }
+                        if d2 == 0.0 {
+                            0.0
+                        } else {
+                            f64::NEG_INFINITY
+                        }
                     }
                 };
                 if s == m && s.is_finite() {
@@ -530,7 +533,11 @@ impl KvMemory {
                         let d = x[i] - row.k[i];
                         d2 += d * d;
                     }
-                    if d2 == 0.0 { 0.0 } else { f64::NEG_INFINITY }
+                    if d2 == 0.0 {
+                        0.0
+                    } else {
+                        f64::NEG_INFINITY
+                    }
                 }
             };
             let w = ((s - m) / eps.0).exp();
@@ -550,7 +557,7 @@ mod tests {
     fn write_then_read_exact() {
         let mut m = KvMemory::new(2, 2);
         let k = array![1.0, 0.0];
-        let v = array![3.14, 2.72];
+        let v = array![3.25, 2.75];
         m.write("t1", k.view(), v.view(), "alice").unwrap();
         let (kk, vv) = m.read_exact("t1").unwrap();
         assert_eq!(kk, &k);
@@ -560,7 +567,13 @@ mod tests {
     #[test]
     fn delete_is_owner_enforced() {
         let mut m = KvMemory::new(2, 2);
-        m.write("x", array![1.0, 0.0].view(), array![1.0, 0.0].view(), "alice").unwrap();
+        m.write(
+            "x",
+            array![1.0, 0.0].view(),
+            array![1.0, 0.0].view(),
+            "alice",
+        )
+        .unwrap();
         let err = m.delete("x", "mallory").unwrap_err();
         assert!(matches!(err, BruceError::PermissionDenied(_, _, _)));
         m.delete("x", "alice").unwrap();
@@ -571,10 +584,13 @@ mod tests {
     fn snapshot_alive_excludes_deleted() {
         let mut m = KvMemory::new(2, 1);
         for i in 0..5 {
-            m.write(&format!("k{i}"),
+            m.write(
+                &format!("k{i}"),
                 array![i as f64, 0.0].view(),
                 array![i as f64 * 10.0].view(),
-                "alice").unwrap();
+                "alice",
+            )
+            .unwrap();
         }
         m.delete("k2", "alice").unwrap();
         let (ids, k, v) = m.snapshot_alive();
@@ -587,7 +603,8 @@ mod tests {
     #[test]
     fn audit_log_records_ops() {
         let mut m = KvMemory::new(1, 1);
-        let k = array![1.0]; let v = array![1.0];
+        let k = array![1.0];
+        let v = array![1.0];
         m.write("a", k.view(), v.view(), "alice").unwrap();
         m.write("b", k.view(), v.view(), "bob").unwrap();
         m.delete("a", "alice").unwrap();
@@ -605,12 +622,27 @@ mod tests {
         let path = dir.join("snap.parquet");
 
         let mut m = KvMemory::new(3, 2);
-        m.write("a", array![1.0, 0.0, -1.0].view(),
-                array![10.0, 20.0].view(), "alice").unwrap();
-        m.write("b", array![0.5, 0.5, 0.5].view(),
-                array![1.5, 2.5].view(), "bob").unwrap();
-        m.write("c", array![9.0, 9.0, 9.0].view(),
-                array![-1.0, -2.0].view(), "carol").unwrap();
+        m.write(
+            "a",
+            array![1.0, 0.0, -1.0].view(),
+            array![10.0, 20.0].view(),
+            "alice",
+        )
+        .unwrap();
+        m.write(
+            "b",
+            array![0.5, 0.5, 0.5].view(),
+            array![1.5, 2.5].view(),
+            "bob",
+        )
+        .unwrap();
+        m.write(
+            "c",
+            array![9.0, 9.0, 9.0].view(),
+            array![-1.0, -2.0].view(),
+            "carol",
+        )
+        .unwrap();
         m.delete("b", "bob").unwrap();
 
         m.save_parquet(&path).unwrap();
@@ -632,8 +664,7 @@ mod tests {
 
     #[test]
     fn parquet_roundtrip_preserves_attention_bitexact() {
-        let dir = std::env::temp_dir().join(format!("bruce_persist_attn_{}",
-                                                     std::process::id()));
+        let dir = std::env::temp_dir().join(format!("bruce_persist_attn_{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("snap.parquet");
 
@@ -642,7 +673,8 @@ mod tests {
         for i in 0..16 {
             let k = Array1::from_iter((0..4).map(|j| ((i + j) as f64).sin()));
             let v = Array1::from_iter((0..3).map(|j| ((i * 7 + j) as f64).cos()));
-            m.write(&format!("k{i}"), k.view(), v.view(), "alice").unwrap();
+            m.write(&format!("k{i}"), k.view(), v.view(), "alice")
+                .unwrap();
         }
         m.delete("k5", "alice").unwrap();
 

@@ -57,10 +57,7 @@ pub fn hash_join<K: Eq + Hash + Clone + Sync>(
 
 /// Sort-merge join over pre-sorted key columns. O(|L| + |R|).
 /// Both inputs MUST be sorted ascending.
-pub fn sort_merge_join<K: Ord + Clone>(
-    left_keys: &[K],
-    right_keys: &[K],
-) -> Vec<(usize, usize)> {
+pub fn sort_merge_join<K: Ord + Clone>(left_keys: &[K], right_keys: &[K]) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut i = 0usize;
     let mut j = 0usize;
@@ -172,8 +169,10 @@ mod tests {
         let n_right = 100;
         let left: Vec<i64> = (0..n_left as i64).map(|i| i % 200).collect();
         let right: Vec<i64> = (0..n_right as i64).map(|i| i % 200).collect();
-        assert!(left.len() >= PROBE_PARALLEL_THRESHOLD,
-                "test relies on left exceeding parallel threshold");
+        assert!(
+            left.len() >= PROBE_PARALLEL_THRESHOLD,
+            "test relies on left exceeding parallel threshold"
+        );
         let mut par_pairs = hash_join(&left, &right);
         par_pairs.sort();
         // serial reference: build then probe in-loop
@@ -190,10 +189,15 @@ mod tests {
             }
         }
         ser_pairs.sort();
-        assert_eq!(par_pairs.len(), ser_pairs.len(),
-                   "parallel path returns wrong pair count");
-        assert_eq!(par_pairs, ser_pairs,
-                   "parallel and serial paths disagree on pair set");
+        assert_eq!(
+            par_pairs.len(),
+            ser_pairs.len(),
+            "parallel path returns wrong pair count"
+        );
+        assert_eq!(
+            par_pairs, ser_pairs,
+            "parallel and serial paths disagree on pair set"
+        );
     }
 
     #[test]

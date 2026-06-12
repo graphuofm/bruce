@@ -136,6 +136,6 @@ mod tests {
     fn k_only_ignores_diversity() {
         let g = AnonymityGuard::k_anonymity(3);
         let survivors = vec!["cancer"; 5];
-        assert!(g.evaluate(&survivors).allow());     // diversity not checked
+        assert!(g.evaluate(&survivors).allow()); // diversity not checked
     }
 }

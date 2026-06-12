@@ -14,7 +14,7 @@ use ndarray::array;
 #[command(
     name = "bruce",
     about = "Bruce: a unified algebra of relational databases and attention",
-    version,
+    version
 )]
 struct Cli {
     #[command(subcommand)]
@@ -41,7 +41,11 @@ fn cmd_demo() -> Result<()> {
         ("ε = 1.0  (softmax)", Eps::ONE),
         ("ε = 4.0", Eps(4.0)),
     ] {
-        let sim = if eps.is_zero() { Sim::Indicator } else { Sim::Dot };
+        let sim = if eps.is_zero() {
+            Sim::Indicator
+        } else {
+            Sim::Dot
+        };
         let op = F_eps::new(eps, sim);
         let out = op.attention(&x.view(), &k.view(), &v.view());
         println!("  {label}: out = {:?}", out.as_slice().unwrap());

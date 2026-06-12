@@ -93,12 +93,22 @@ mod tests {
         let mut mem = KvMemory::new(2, 1);
         // 5 rows for customer42, 3 rows for customer99
         for i in 0..5 {
-            mem.write(&format!("cust42_r{i}"), array![1.0, 0.0].view(),
-                       array![i as f64].view(), "gdpr-controller").unwrap();
+            mem.write(
+                &format!("cust42_r{i}"),
+                array![1.0, 0.0].view(),
+                array![i as f64].view(),
+                "gdpr-controller",
+            )
+            .unwrap();
         }
         for i in 0..3 {
-            mem.write(&format!("cust99_r{i}"), array![0.0, 1.0].view(),
-                       array![i as f64].view(), "gdpr-controller").unwrap();
+            mem.write(
+                &format!("cust99_r{i}"),
+                array![0.0, 1.0].view(),
+                array![i as f64].view(),
+                "gdpr-controller",
+            )
+            .unwrap();
         }
         assert_eq!(mem.len_alive(), 8);
 
@@ -109,13 +119,14 @@ mod tests {
         };
         let receipt = plan.execute("rentals", &mut mem).unwrap();
         assert_eq!(receipt.n_total, 5);
-        assert_eq!(mem.len_alive(), 3);  // customer99's 3 rows remain
+        assert_eq!(mem.len_alive(), 3); // customer99's 3 rows remain
     }
 
     #[test]
     fn cascade_is_idempotent() {
         let mut mem = KvMemory::new(1, 1);
-        mem.write("only", array![1.0].view(), array![1.0].view(), "owner").unwrap();
+        mem.write("only", array![1.0].view(), array![1.0].view(), "owner")
+            .unwrap();
         let plan = CascadePlan {
             subject_id: "s".into(),
             references: vec![("t", vec!["only".into(), "doesnt-exist".into()])],

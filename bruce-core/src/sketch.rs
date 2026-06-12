@@ -136,7 +136,7 @@ mod tests {
     use ndarray::{array, Array2};
 
     #[test]
-    fn sketch_size_is_independent_of_N() {
+    fn sketch_size_is_independent_of_n() {
         // Two sketches over different N but same d_phi, d_v → same byte size
         let d_phi = 32;
         let d_v = 16;
@@ -150,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn sketch_query_independent_of_N() {
+    fn sketch_query_independent_of_n() {
         // build the sketch, query — query time is constant
         let d_phi = 16;
         let d_v = 4;

@@ -19,7 +19,12 @@ pub enum BruceError {
 
     /// A query vector's dimension does not match the memory's `d_k`.
     #[error("dimension mismatch: expected {expected}, got {got}")]
-    DimensionMismatch { expected: usize, got: usize },
+    DimensionMismatch {
+        /// The dimension the operation required.
+        expected: usize,
+        /// The dimension actually supplied.
+        got: usize,
+    },
 
     /// An invalid epsilon (e.g., negative) was supplied.
     #[error("invalid temperature ε = {0}: must be non-negative")]
