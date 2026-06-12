@@ -51,7 +51,7 @@ RUN bruce demo \
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-numpy ca-certificates \
+        python3 python3-numpy ca-certificates curl python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # copy artefacts only — no rust toolchain in the runtime image
@@ -60,6 +60,17 @@ COPY --from=build /usr/local/bin/bruce-server /usr/local/bin/bruce-server
 COPY --from=build /bruce/target/wheels /tmp/wheels
 RUN python3 -m pip install --break-system-packages --no-cache-dir /tmp/wheels/bruce-*.whl \
     && rm -rf /tmp/wheels
+
+# Run as a non-root user (industrial container hygiene: a container
+# escape or RCE in the server lands in an unprivileged account).
+RUN useradd --system --create-home --uid 10001 bruce
+USER bruce
+WORKDIR /home/bruce
+
+# Container-level liveness probe against the server's /health
+# (only meaningful when the container runs bruce-server).
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8080/health || exit 1
 
 EXPOSE 8080
 CMD ["bruce", "demo"]
