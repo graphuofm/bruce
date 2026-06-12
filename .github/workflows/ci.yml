@@ -6,7 +6,24 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
+  lint:
+    name: fmt + clippy (full workspace)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+      - name: cargo clippy (all crates, all targets, deny warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
   rust:
     name: Rust ${{ matrix.toolchain }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -20,47 +37,56 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
-          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - name: cargo fmt
-        run: cargo fmt --all -- --check
-      - name: cargo clippy
-        run: cargo clippy -p bruce-core -p bruce-cli --all-targets -- -D warnings
-      - name: cargo test (core)
-        run: cargo test -p bruce-core --release
-      - name: cargo build cli
-        run: cargo build -p bruce-cli --release
+      - name: cargo test (full workspace)
+        run: cargo test --workspace --release
       - name: cli demo runs
-        run: ./target/release/bruce demo
+        run: |
+          cargo build -p bruce-cli --release
+          ./target/release/bruce demo
+
+  msrv:
+    name: MSRV check (1.81)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.81"
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --workspace --all-targets
 
   python:
-    name: Python ${{ matrix.py }} on ubuntu
+    name: wheel + pytest, Python ${{ matrix.py }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        py: ["3.10", "3.11", "3.12"]
+        py: ["3.9", "3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py }}
-      - name: install maturin
-        run: pip install maturin pytest numpy
-      - name: build + install
+      - name: build wheel (abi3)
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: bruce-py
+          command: build
+          args: --release --out ../dist-ci
+      - name: install + test (failures are failures)
         run: |
-          cd bruce-py
-          maturin develop --release
-      - name: smoke test
-        run: |
-          python -c "
-          import bruce, numpy as np
-          op = bruce.Operator(eps=1.0, sim='dot')
-          out = op.attention(np.array([1.,0.]), np.array([[1.,0.],[0.,1.]]), np.array([[10.,0.],[0.,10.]]))
-          assert abs(out[0] - 10*2.718281828/(2.718281828+1)) < 1e-10
-          print('python bindings ok')
-          "
-      - name: pytest (when tests exist)
-        run: |
-          cd bruce-py
-          pytest tests/ -v || echo "  no pytest suite yet"
+          python -m pip install --upgrade pip
+          pip install numpy pytest
+          pip install dist-ci/bruce-*.whl
+          pytest bruce-py/tests -q
+
+  audit:
+    name: cargo-deny (advisories + licenses)
+    runs-on: ubuntu-latest
+    continue-on-error: true # advisory-DB churn must not block unrelated PRs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2

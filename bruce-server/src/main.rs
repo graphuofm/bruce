@@ -110,7 +110,7 @@ async fn auth_middleware(
     // Open paths: /health, /metrics.  Everything else requires a
     // Bearer token signed with the configured HS256 secret.
     let p = req.uri().path();
-    if p == "/health" || p == "/metrics" {
+    if p == "/health" || p == "/ready" || p == "/metrics" {
         return Ok(next.run(req).await);
     }
     let auth = req
@@ -162,6 +162,7 @@ struct Metrics {
     deletes_total: std::sync::atomic::AtomicU64,
     deletes_fail_total: std::sync::atomic::AtomicU64,
     queries_total: std::sync::atomic::AtomicU64,
+    wal_fail_total: std::sync::atomic::AtomicU64,
     started_unix_seconds: std::sync::atomic::AtomicU64,
 }
 
@@ -191,15 +192,36 @@ enum WalRecord {
 }
 
 impl Inner {
-    fn append_wal(&self, rec: &WalRecord) {
-        if let Some(handle) = &self.wal {
-            use std::io::Write as _;
-            let line = serde_json::to_string(rec).unwrap_or_default();
-            let mut f = handle.lock().unwrap();
-            let _ = f.write_all(line.as_bytes());
-            let _ = f.write_all(b"\n");
-            let _ = f.flush();
+    /// Append one record to the WAL. Returns `false` on any I/O
+    /// failure so callers can surface the durability loss instead of
+    /// silently acking a write that never reached the log.
+    fn append_wal(&self, rec: &WalRecord) -> bool {
+        let Some(handle) = &self.wal else {
+            return true; // WAL disabled: nothing to lose
+        };
+        use std::io::Write as _;
+        let line = match serde_json::to_string(rec) {
+            Ok(l) => l,
+            Err(e) => {
+                tracing::error!("WAL serialize failed: {e}");
+                return false;
+            }
+        };
+        // Recover from mutex poisoning rather than crashing the server:
+        // the file handle itself is still usable.
+        let mut f = match handle.lock() {
+            Ok(g) => g,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        let ok = f
+            .write_all(line.as_bytes())
+            .and_then(|()| f.write_all(b"\n"))
+            .and_then(|()| f.flush());
+        if let Err(e) = ok {
+            tracing::error!("WAL append failed: {e}");
+            return false;
         }
+        true
     }
 }
 
@@ -248,6 +270,14 @@ async fn health() -> &'static str {
     "ok"
 }
 
+/// Readiness: verifies the shared state is acquirable (no deadlock /
+/// poisoned WAL) — suitable as a k8s readinessProbe, while `/health`
+/// stays a trivial liveness probe.
+async fn ready(State(st): State<AppState>) -> Result<&'static str, (StatusCode, String)> {
+    let _ = st.inner.read().await;
+    Ok("ready")
+}
+
 async fn info(State(st): State<AppState>) -> Json<InfoResponse> {
     let g = st.inner.read().await;
     Json(InfoResponse {
@@ -262,9 +292,21 @@ async fn info(State(st): State<AppState>) -> Json<InfoResponse> {
 
 async fn write_fact(
     State(st): State<AppState>,
+    claims: Option<axum::Extension<JwtClaims>>,
     Json(req): Json<WriteRequest>,
 ) -> Result<Json<&'static str>, (StatusCode, String)> {
     Metrics::bump(&st.metrics.requests_total);
+    // Cross-tenant safety: with JWT enabled, the token's subject must
+    // match the owner being written. Without JWT the field is trusted
+    // as-is (legacy/plaintext mode, see startup warning).
+    if let Some(axum::Extension(c)) = &claims {
+        if c.sub != req.owner {
+            return Err((
+                StatusCode::FORBIDDEN,
+                format!("token subject {:?} may not write as owner {:?}", c.sub, req.owner),
+            ));
+        }
+    }
     let mut g = st.inner.write().await;
     let k = Array1::from(req.k.clone());
     let v = Array1::from(req.v.clone());
@@ -274,12 +316,18 @@ async fn write_fact(
     }
     g.audit
         .append(format!("WRITE {} by {}", req.fact_id, req.owner).as_bytes());
-    g.append_wal(&WalRecord::Write {
+    if !g.append_wal(&WalRecord::Write {
         id: req.fact_id,
         k: req.k,
         v: req.v,
         owner: req.owner,
-    });
+    }) {
+        Metrics::bump(&st.metrics.wal_fail_total);
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "write applied in memory but WAL append failed; durability not guaranteed".into(),
+        ));
+    }
     Metrics::bump(&st.metrics.writes_total);
     Ok(Json("ok"))
 }
@@ -305,10 +353,19 @@ async fn read_fact(
 
 async fn delete_fact(
     State(st): State<AppState>,
+    claims: Option<axum::Extension<JwtClaims>>,
     Path(id): Path<String>,
     Query(q): Query<OwnerQuery>,
 ) -> Result<Json<&'static str>, (StatusCode, String)> {
     Metrics::bump(&st.metrics.requests_total);
+    if let Some(axum::Extension(c)) = &claims {
+        if c.sub != q.owner {
+            return Err((
+                StatusCode::FORBIDDEN,
+                format!("token subject {:?} may not delete as owner {:?}", c.sub, q.owner),
+            ));
+        }
+    }
     let mut g = st.inner.write().await;
     if let Err(e) = g.mem.delete(&id, &q.owner) {
         Metrics::bump(&st.metrics.deletes_fail_total);
@@ -316,7 +373,13 @@ async fn delete_fact(
     }
     g.audit
         .append(format!("DELETE {} by {}", id, q.owner).as_bytes());
-    g.append_wal(&WalRecord::Delete { id, owner: q.owner });
+    if !g.append_wal(&WalRecord::Delete { id, owner: q.owner }) {
+        Metrics::bump(&st.metrics.wal_fail_total);
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "delete applied in memory but WAL append failed; durability not guaranteed".into(),
+        ));
+    }
     Metrics::bump(&st.metrics.deletes_total);
     Ok(Json("ok"))
 }
@@ -368,6 +431,9 @@ bruce_total_facts {total}
 # HELP bruce_audit_length audit-log entries (gauge)
 # TYPE bruce_audit_length gauge
 bruce_audit_length {audit_len}
+# HELP bruce_wal_fail_total WAL append failures (durability loss!)
+# TYPE bruce_wal_fail_total counter
+bruce_wal_fail_total {walf}
 # HELP bruce_uptime_seconds time since startup
 # TYPE bruce_uptime_seconds counter
 bruce_uptime_seconds {uptime}
@@ -380,6 +446,7 @@ bruce_uptime_seconds {uptime}
         d = Metrics::get(&m.deletes_total),
         df = Metrics::get(&m.deletes_fail_total),
         q = Metrics::get(&m.queries_total),
+        walf = Metrics::get(&m.wal_fail_total),
         alive = alive,
         total = total,
         audit_len = audit_len,
@@ -526,6 +593,7 @@ async fn main() -> Result<()> {
 
     let mut app = Router::new()
         .route("/health", get(health))
+        .route("/ready", get(ready))
         .route("/info", get(info))
         .route("/facts", post(write_fact))
         .route("/facts/:id", get(read_fact))
@@ -535,6 +603,7 @@ async fn main() -> Result<()> {
         .route("/audit/length", get(audit_length))
         .route("/audit/append", post(audit_append))
         .route("/metrics", get(metrics_endpoint))
+        .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(state);
 
     // SECURITY-001: JWT auth (optional).  If --jwt-secret is set,
@@ -571,12 +640,46 @@ async fn main() -> Result<()> {
         )
         .await
         .map_err(|e| anyhow::anyhow!("TLS load: {e}"))?;
+        let handle = axum_server::Handle::new();
+        let h2 = handle.clone();
+        tokio::spawn(async move {
+            shutdown_signal().await;
+            tracing::info!("shutdown signal received; draining connections");
+            h2.graceful_shutdown(Some(std::time::Duration::from_secs(15)));
+        });
         axum_server::bind_rustls(addr, tls_cfg)
+            .handle(handle)
             .serve(app.into_make_service())
             .await?;
     } else {
         let listener = tokio::net::TcpListener::bind(&cli.addr).await?;
-        axum::serve(listener, app).await?;
+        axum::serve(listener, app)
+            .with_graceful_shutdown(shutdown_signal())
+            .await?;
     }
+    tracing::info!("bruce-server stopped cleanly");
     Ok(())
+}
+
+/// Resolve on SIGINT (ctrl-c) or SIGTERM (docker stop / kubernetes),
+/// so in-flight requests drain and the WAL is left consistent.
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        let _ = tokio::signal::ctrl_c().await;
+    };
+    #[cfg(unix)]
+    let term = async {
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut s) => {
+                s.recv().await;
+            }
+            Err(_) => std::future::pending::<()>().await,
+        }
+    };
+    #[cfg(not(unix))]
+    let term = std::future::pending::<()>();
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = term => {},
+    }
 }

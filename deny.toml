@@ -1,0 +1,34 @@
+# cargo-deny configuration — license + advisory policy for publication.
+# Run locally with: cargo deny check   (cargo install cargo-deny)
+
+[graph]
+all-features = false
+
+[advisories]
+yanked = "deny"
+
+[licenses]
+# The project itself is Apache-2.0. Allow the common permissive set for
+# dependencies; anything outside this list must be reviewed explicitly.
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "MIT",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+  "CC0-1.0",
+  "MPL-2.0",       # openblas-src build helpers
+  "BSL-1.0",
+]
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
