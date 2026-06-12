@@ -29,20 +29,23 @@ classifiers = [
   "Typing :: Typed",
 ]
 keywords = ["attention", "database", "semiring", "join", "transformer", "retrieval"]
-
-[project.urls]
-Repository = "https://github.com/jding/bruce"
-Changelog = "https://github.com/jding/bruce/blob/main/CHANGELOG.md"
 dependencies = [
   "numpy>=1.24",
 ]
+
+
 
 [project.optional-dependencies]
 test = ["pytest>=7", "hypothesis>=6"]
 bench = ["pytest-benchmark"]
 
+[project.urls]
+Repository = "https://github.com/jding/bruce"
+Changelog = "https://github.com/jding/bruce/blob/main/CHANGELOG.md"
+
 [tool.maturin]
 module-name = "bruce._bruce"
+exclude = ["**/__pycache__/**"]
 features = ["pyo3/extension-module"]
 manifest-path = "Cargo.toml"
 python-source = "python"

@@ -41,8 +41,12 @@ For a from-source build:
 git clone <repo>
 cd bruce
 cargo build --release          # Rust crates + CLI + HTTP server binaries
-cd bruce-py && maturin develop --release   # Python wheel into your env
+cd bruce-py && maturin build --release     # build the wheel
+pip install ../target/wheels/bruce-*.whl   # install it
 ```
+
+(`maturin develop` also works, but requires an activated virtualenv;
+`maturin build` + `pip install` works everywhere and is what CI does.)
 
 ## Quick start
 
@@ -208,3 +212,34 @@ Apache-2.0.
 
 Alpha. Useful as a research toolkit and as a reference implementation
 of the F_ε operator. APIs may evolve before 1.0.
+
+
+## Production deployment (bruce-server)
+
+`bruce-server` ships with the controls a real deployment needs — all
+opt-in flags, all covered by the smoke suite:
+
+| concern | mechanism |
+|---|---|
+| auth | `--jwt-secret` (HS256 Bearer); token `sub` must match `owner` on writes/deletes |
+| transport | `--tls-cert` / `--tls-key`, or terminate TLS at a proxy |
+| durability | `--wal-path` write-ahead log, replayed on restart; WAL failures return HTTP 500 and increment `bruce_wal_fail_total` |
+| probes | `GET /health` (liveness), `GET /ready` (readiness) — both auth-exempt |
+| observability | `GET /metrics` (Prometheus text), per-request tracing (`RUST_LOG=info`) |
+| lifecycle | graceful drain on SIGINT/SIGTERM (15 s TLS drain window) |
+| container | non-root image (uid 10001) with HEALTHCHECK |
+
+Read `SECURITY.md` before exposing the server to a network.
+
+## Project status & versioning
+
+Pre-1.0 (`0.x`): minor versions may break APIs; every breaking change
+is listed in `CHANGELOG.md` under a "Breaking" heading. The library
+core is panic-free on user input (errors are `Result`s in Rust,
+`ValueError`s in Python), the release profile uses `panic = "unwind"`
+so a bug in Rust can never take down a host Python process, and CI
+enforces `clippy -D warnings`, MSRV 1.81, and both test suites on
+every change. The Python package is typed (PEP 561).
+
+Note before first publication: the PyPI name `bruce` may be taken;
+check availability and reserve early (see TODO `PUBLISH-NAME-001`).

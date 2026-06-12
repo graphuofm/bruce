@@ -1,5 +1,59 @@
 # bruce_tool — Changelog
 
+## 2026-06-12 (industrialization pass — toward publication)
+
+### Foundation
+- **Version control**: repository initialized; baseline commit captures
+  the pre-industrialization state, every layer below is a separate
+  reviewable commit.
+- **Panic policy**: release profile switched from `panic = "abort"` to
+  unwind — with abort, any Rust panic killed the host Python
+  interpreter; with unwind PyO3 raises PanicException. Library paths
+  audited: no panics on user input remain (attention_batch returns
+  Result; DP mechanisms and k_ary_balanced_tree validate at the
+  Python boundary with ValueError).
+- **MSRV 1.81** declared and CI-checked.
+- **Static analysis**: cargo clippy --workspace --all-targets at ZERO
+  warnings (was ~50); cargo fmt enforced.
+
+### CI / packaging
+- ci.yml rewritten: full-workspace clippy -D warnings, stable+beta x
+  linux+macos test matrix, MSRV job, maturin-action wheel builds with
+  strict pytest (the old pipeline used venv-dependent maturin develop
+  and `pytest || echo`, which silently swallowed failures), cargo-deny
+  audit job + deny.toml license/advisory policy.
+- release.yml: tag-driven wheels (manylinux x86_64/aarch64, macOS
+  x86_64/aarch64, sdist) -> PyPI via OIDC trusted publishing.
+- pyproject.toml: requires-python >=3.9 (matches abi3-py39), full
+  classifiers, keywords, URLs; FIXED a latent TOML bug where a
+  misplaced table would have swallowed `dependencies`.
+- PEP 561: py.typed + complete _bruce.pyi stub (33/33 names) now ship
+  inside the wheel; __pycache__ excluded from the wheel.
+
+### bruce-server hardening (smoke-tested 9/9)
+- WAL append failures now surface as HTTP 500 + bruce_wal_fail_total
+  metric (previously silently swallowed after acking the client);
+  mutex poisoning recovered instead of crashing.
+- JWT cross-tenant enforcement: token sub must equal owner on
+  POST /facts and DELETE /facts/:id (was documented, never enforced).
+- GET /ready readiness probe; tower-http request tracing; graceful
+  SIGINT/SIGTERM drain for both plaintext and TLS paths.
+- Dockerfile: non-root runtime user (uid 10001) + HEALTHCHECK.
+
+### Robustness & docs
+- proptest property suite for masked_attention (order invariance +
+  reference agreement, 256 cases x 2 properties, all eps regimes).
+- criterion benchmarks for the mask evaluator (causal N=512: ~0.49 ms;
+  window N=8192 w=64: ~14 ms on the dev box).
+- README production-deployment + versioning sections; CONTRIBUTING.md
+  (quality gates, engineering rules); SECURITY.md (reporting policy +
+  server security model).
+
+### Known pre-publication items
+- PyPI/crates.io name availability for "bruce" unverified
+  (PUBLISH-NAME-001 in bruce/TODO.txt).
+- GitHub remote not yet created; CI is ready to run on first push.
+
 ## 2026-06-12 (PODS-paper theory back-ported into the kernel)
 
 ### bruce-core

@@ -303,7 +303,10 @@ async fn write_fact(
         if c.sub != req.owner {
             return Err((
                 StatusCode::FORBIDDEN,
-                format!("token subject {:?} may not write as owner {:?}", c.sub, req.owner),
+                format!(
+                    "token subject {:?} may not write as owner {:?}",
+                    c.sub, req.owner
+                ),
             ));
         }
     }
@@ -362,7 +365,10 @@ async fn delete_fact(
         if c.sub != q.owner {
             return Err((
                 StatusCode::FORBIDDEN,
-                format!("token subject {:?} may not delete as owner {:?}", c.sub, q.owner),
+                format!(
+                    "token subject {:?} may not delete as owner {:?}",
+                    c.sub, q.owner
+                ),
             ));
         }
     }
