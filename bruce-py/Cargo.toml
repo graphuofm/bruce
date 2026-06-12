@@ -1,0 +1,29 @@
+[package]
+name = "bruce-py"
+description = "Python bindings for Bruce: the F_ε operator"
+version.workspace    = true
+edition.workspace    = true
+authors.workspace    = true
+license.workspace    = true
+repository.workspace = true
+
+[lib]
+name = "bruce"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# Forward WHEEL-BLAS-001 to bruce-core. The cdylib still needs its
+# own `extern crate openblas_src` (see src/lib.rs) so cargo emits
+# the link directive against the final .so.
+blas = ["bruce-core/blas", "dep:blas-src", "dep:openblas-src"]
+
+[dependencies]
+bruce-core = { path = "../bruce-core" }
+pyo3       = { workspace = true }
+numpy      = { workspace = true }
+ndarray    = { workspace = true }
+ahash      = { workspace = true }
+
+blas-src    = { workspace = true, optional = true }
+openblas-src = { workspace = true, optional = true }

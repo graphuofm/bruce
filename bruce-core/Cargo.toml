@@ -1,0 +1,57 @@
+[package]
+name = "bruce-core"
+description = "The F_ε operator: a unified algebra of relational databases and Transformer attention"
+version.workspace       = true
+edition.workspace       = true
+authors.workspace       = true
+license.workspace       = true
+repository.workspace    = true
+homepage.workspace      = true
+documentation.workspace = true
+readme.workspace        = true
+keywords.workspace      = true
+categories.workspace    = true
+
+[features]
+default = []
+# WHEEL-BLAS-001: route ndarray's matmul through openblas. Off by
+# default because openblas-src vendored-builds from source (≈5 min).
+blas = ["ndarray/blas", "dep:blas-src", "dep:openblas-src"]
+
+[dependencies]
+ndarray    = { workspace = true }
+rayon      = { workspace = true }
+ahash      = { workspace = true }
+half       = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+chrono     = { workspace = true }
+thiserror  = { workspace = true }
+anyhow     = { workspace = true }
+tracing    = { workspace = true }
+crossbeam  = { workspace = true }
+
+# Parquet persistence for KvMemory (PERSIST-001)
+arrow      = { workspace = true }
+parquet    = { workspace = true }
+
+# BLAS — optional. See [features.blas] above.
+blas-src    = { workspace = true, optional = true }
+openblas-src = { workspace = true, optional = true }
+
+# privacy / crypto
+rand           = { workspace = true }
+rand_distr     = { workspace = true }
+ed25519-dalek  = { workspace = true }
+sha2           = { workspace = true }
+aes-gcm        = { workspace = true }
+hex            = { workspace = true }
+
+[dev-dependencies]
+proptest = "1.5"
+approx   = "0.5"
+criterion = "0.5"
+
+[[bench]]
+name = "operator_bench"
+harness = false

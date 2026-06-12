@@ -1,0 +1,20 @@
+[package]
+name = "bruce-cli"
+description = "Command-line interface for Bruce: the F_ε operator"
+version.workspace    = true
+edition.workspace    = true
+authors.workspace    = true
+license.workspace    = true
+repository.workspace = true
+
+[[bin]]
+name = "bruce"
+path = "src/main.rs"
+
+[dependencies]
+bruce-core = { path = "../bruce-core" }
+clap       = { workspace = true }
+anyhow     = { workspace = true }
+tracing    = { workspace = true }
+ndarray    = { workspace = true }
+serde_json = { workspace = true }

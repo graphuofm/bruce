@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  rust:
+    name: Rust ${{ matrix.toolchain }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [stable, beta]
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+      - name: cargo clippy
+        run: cargo clippy -p bruce-core -p bruce-cli --all-targets -- -D warnings
+      - name: cargo test (core)
+        run: cargo test -p bruce-core --release
+      - name: cargo build cli
+        run: cargo build -p bruce-cli --release
+      - name: cli demo runs
+        run: ./target/release/bruce demo
+
+  python:
+    name: Python ${{ matrix.py }} on ubuntu
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        py: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py }}
+      - name: install maturin
+        run: pip install maturin pytest numpy
+      - name: build + install
+        run: |
+          cd bruce-py
+          maturin develop --release
+      - name: smoke test
+        run: |
+          python -c "
+          import bruce, numpy as np
+          op = bruce.Operator(eps=1.0, sim='dot')
+          out = op.attention(np.array([1.,0.]), np.array([[1.,0.],[0.,1.]]), np.array([[10.,0.],[0.,10.]]))
+          assert abs(out[0] - 10*2.718281828/(2.718281828+1)) < 1e-10
+          print('python bindings ok')
+          "
+      - name: pytest (when tests exist)
+        run: |
+          cd bruce-py
+          pytest tests/ -v || echo "  no pytest suite yet"

@@ -1,0 +1,77 @@
+[workspace]
+resolver = "2"
+members = ["bruce-core", "bruce-py", "bruce-cli", "bruce-server"]
+
+[workspace.package]
+version       = "0.1.0"
+edition       = "2021"
+authors       = ["Jiacheng Ding <jding2@memphis.edu>"]
+license       = "Apache-2.0"
+repository    = "https://github.com/jding/bruce"
+homepage      = "https://github.com/jding/bruce"
+documentation = "https://docs.rs/bruce"
+readme        = "README.md"
+keywords      = ["database", "attention", "transformer", "semiring", "join"]
+categories    = ["database", "science"]
+
+[workspace.dependencies]
+# core numerics
+ndarray   = { version = "0.16", features = ["serde", "rayon"] }
+rayon     = "1.10"
+ahash     = "0.8"
+half      = "2.4"          # for f16 / bf16 support
+
+# audit / configuration
+serde      = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono     = { version = "0.4", features = ["serde"] }
+
+# error handling
+thiserror = "1.0"
+anyhow    = "1.0"
+
+# logging
+tracing = "0.1"
+
+# parallel + distributed primitives
+crossbeam = "0.8"
+
+# CLI
+clap     = { version = "4.5", features = ["derive"] }
+
+# PyO3
+pyo3      = { version = "0.22", features = ["extension-module", "abi3-py39"] }
+numpy     = "0.22"
+
+# DB / data formats (will use them later)
+duckdb     = { version = "1.4", features = ["bundled"] }   # for ε=0 SQL baseline
+arrow      = "53"
+parquet    = "53"
+
+# BLAS for ndarray (WHEEL-BLAS-001).  blas-src + openblas-src must be
+# named in the *final* cdylib too (`extern crate openblas_src as _`)
+# so Cargo emits the link directive; otherwise the openblas
+# archive is dead-stripped from the wheel.
+blas-src    = { version = "0.10", features = ["openblas"] }
+openblas-src = { version = "0.10", features = ["cblas", "static"] }
+
+# HTTP server (bruce-server)
+axum       = "0.7"
+tokio      = { version = "1", features = ["full"] }
+tower      = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# privacy / crypto primitives
+rand           = "0.8"
+rand_distr     = "0.4"        # Laplace, Gaussian for DP
+ed25519-dalek  = { version = "2.1", features = ["rand_core"] }
+sha2           = "0.10"       # Merkle log
+aes-gcm        = "0.10"       # encrypted-at-rest
+hex            = "0.4"
+
+[profile.release]
+opt-level   = 3
+lto         = "fat"
+codegen-units = 1
+panic       = "abort"
