@@ -1,0 +1,6 @@
+comment = 'softavg: the (mu, z, u) soft-average monoid as a native PostgreSQL aggregate'
+default_version = '@CARGO_VERSION@'
+module_pathname = 'bruce_pg'
+relocatable = false
+superuser = true
+trusted = false

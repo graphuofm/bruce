@@ -7,6 +7,7 @@ Core operators (Rust-backed, CPU):
     bruce.Operator              — F_ε attention: A_ε(x, K, V) at any ε
     bruce.IncrementalMemory     — O(d) insert/delete/update via Lemma A
     bruce.KvMemory              — durable K/V memory with audit log
+    bruce.KvSnapshot            — contiguous export of a KvMemory's live rows
     bruce.FuzzyJoinSketch       — linear-attention kernel trick
     bruce.tree_attention        — sub-quadratic tree-causal F_ε (paper A1)
     bruce.{chain,balanced_binary,k_ary_balanced,star}_tree — tree builders
@@ -55,6 +56,7 @@ from bruce._bruce import (   # noqa: F401
     Identity,
     IncrementalMemory,
     KvMemory,
+    KvSnapshot,
     LaplaceMechanism,
     MerkleAuditLog,
     Operator,
@@ -76,6 +78,9 @@ from bruce._bruce import (   # noqa: F401
     sort_merge_join,
     star_tree,
     tree_attention,
+    QuerySession,
+    grouped_softavg,
+    grouped_softavg_f32,
     masked_attention,
     causal_pairs,
     window_pairs,
@@ -96,6 +101,7 @@ __all__ = [
     "Identity",
     "IncrementalMemory",
     "KvMemory",
+    "KvSnapshot",
     "LaplaceMechanism",
     "MerkleAuditLog",
     "Operator",
@@ -116,6 +122,9 @@ __all__ = [
     "lftj_three",
     "sort_merge_join",
     "star_tree",
+    "QuerySession",
+    "grouped_softavg",
+    "grouped_softavg_f32",
     "masked_attention",
     "causal_pairs",
     "window_pairs",

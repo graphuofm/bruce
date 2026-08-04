@@ -19,7 +19,8 @@ default = []
 blas = ["bruce-core/blas", "dep:blas-src", "dep:openblas-src"]
 
 [dependencies]
-bruce-core = { path = "../bruce-core" }
+bruce-core  = { path = "../bruce-core" }
+bruce-query = { path = "../bruce-query" }
 pyo3       = { workspace = true }
 numpy      = { workspace = true }
 ndarray    = { workspace = true }

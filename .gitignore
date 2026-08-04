@@ -1,5 +1,8 @@
 # Rust
-/target/
+# NOT /target/ — bruce-cdc and bruce-pg are standalone crates with
+# their own workspaces, so a root-anchored rule misses their build
+# artifacts (9,546 files at last count).
+target/
 **/*.rs.bk
 Cargo.lock.orig
 

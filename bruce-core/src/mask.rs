@@ -30,7 +30,9 @@
 //! - `ε = ∞`: all weights 1, `out[i]` = plain mean over the mask row.
 //!
 //! Rows `i` with no pair in the stream are *uncovered*: the output
-//! row is zero and the returned `covered[i]` flag is `false`.
+//! row is zero and the returned `covered[i]` flag is `false`. NaN
+//! (the engine's SQL-NULL encoding) skips a pair in every regime —
+//! see [`masked_attention`]'s NULL-semantics section.
 
 use ndarray::{Array2, ArrayView1, ArrayView2};
 use rayon::prelude::*;
@@ -71,9 +73,34 @@ impl RowAcc {
     }
 
     /// Absorb one record with score `s` and value row `v_row`.
+    ///
+    /// Score-infinity policy (previously UNDEFINED — `exp(inf - inf)`
+    /// poisoned the accumulator with NaN; pinned by
+    /// `tests/numerical_edges.rs`, PG-aligned per C4):
+    /// * `s = -inf` carries weight 0 at `ε = 0` and finite `ε` and is
+    ///   skipped outright. This is the `Sim::Indicator` "no match"
+    ///   encoding, so a group whose every row scores `-inf` stays
+    ///   *uncovered* — SQL's empty equi-join match set aggregating to
+    ///   NULL — matching `IncrementalMemory`'s tropical path in
+    ///   crud.rs (which also drops non-finite scores). Note this
+    ///   deliberately diverges from `semiring::softmax_eps`'s
+    ///   pathological all-`-inf` uniform fallback.
+    /// * `s = +inf` at finite `ε` dominates every finite score: the
+    ///   accumulator collapses to argmax semantics over the `+inf`
+    ///   rows, with uniform tie handling exactly as at `ε = 0`.
+    /// * At `ε = ∞` the score is not consulted (plain mean), so `±inf`
+    ///   rows count like any other row.
+    ///
+    /// NaN scores/values never reach `absorb` from the grouped
+    /// kernels — the SQL-NULL skip happens at the call sites (see
+    /// [`grouped_softavg`]).
     #[inline]
     fn absorb(&mut self, s: f64, v_row: &ArrayView1<'_, f64>, eps: Eps) {
         if eps.is_zero() {
+            if s == f64::NEG_INFINITY {
+                // Indicator "no match": weight 0 (policy above)
+                return;
+            }
             // tropical: keep only the argmax set
             if s > self.mu {
                 self.mu = s;
@@ -95,6 +122,30 @@ impl RowAcc {
             for (c, uc) in self.u.iter_mut().enumerate() {
                 *uc += v_row[c];
             }
+            return;
+        }
+        // finite ε > 0
+        if s == f64::NEG_INFINITY {
+            // exp(-inf / ε) = 0: contributes nothing (policy above)
+            return;
+        }
+        if s == f64::INFINITY || self.mu == f64::INFINITY {
+            // argmax collapse: only +inf-scored rows retain weight
+            if s == f64::INFINITY && self.mu == f64::INFINITY {
+                // tie among +inf rows: uniform, as at ε = 0
+                self.z += 1.0;
+                for (c, uc) in self.u.iter_mut().enumerate() {
+                    *uc += v_row[c];
+                }
+            } else if s == f64::INFINITY {
+                // first +inf row dominates the finite prefix
+                self.mu = f64::INFINITY;
+                self.z = 1.0;
+                for (c, uc) in self.u.iter_mut().enumerate() {
+                    *uc = v_row[c];
+                }
+            }
+            // else: finite s under a +inf anchor: weight exp(-inf) = 0
             return;
         }
         if self.is_empty() {
@@ -144,6 +195,21 @@ impl RowAcc {
             }
             return;
         }
+        // finite ε with a +inf anchor on either side (see `absorb`'s
+        // policy comment): the +inf side(s) dominate; exp(inf - inf)
+        // must never be evaluated. Pinned by tests/numerical_edges.rs.
+        if self.mu == f64::INFINITY || other.mu == f64::INFINITY {
+            if self.mu == f64::INFINITY && other.mu == f64::INFINITY {
+                self.z += other.z;
+                for (c, uc) in self.u.iter_mut().enumerate() {
+                    *uc += other.u[c];
+                }
+            } else if other.mu == f64::INFINITY {
+                *self = other.clone();
+            }
+            // else: self is the +inf side; other's finite rows weigh 0
+            return;
+        }
         let mu2 = self.mu.max(other.mu);
         let s1 = ((self.mu - mu2) / eps.0).exp();
         let s2 = ((other.mu - mu2) / eps.0).exp();
@@ -170,11 +236,21 @@ fn fold_sequential(
     k: &ArrayView2<'_, f64>,
     v: &ArrayView2<'_, f64>,
     pairs: &[(usize, usize)],
+    v_ok: &[bool],
     eps: Eps,
 ) -> Vec<RowAcc> {
     let mut accs = vec![RowAcc::new(v.ncols()); q.nrows()];
     for &(i, j) in pairs {
         let s = q.row(i).dot(&k.row(j));
+        // SQL NULL discipline (C4): NaN encodes NULL. A pair whose
+        // score is NaN (NaN anywhere in q_i or k_j) or whose value row
+        // holds a NaN component is skipped in every eps regime — the
+        // same rule as the grouped kernels. Exposed by
+        // tests/numerical_edges.rs (mod masked_attention_nan_policy):
+        // NaN scores used to poison the accumulator on this surface.
+        if s.is_nan() || !v_ok[j] {
+            continue;
+        }
         accs[i].absorb(s, &v.row(j), eps);
     }
     accs
@@ -185,13 +261,14 @@ fn fold_parallel(
     k: &ArrayView2<'_, f64>,
     v: &ArrayView2<'_, f64>,
     pairs: &[(usize, usize)],
+    v_ok: &[bool],
     eps: Eps,
 ) -> Vec<RowAcc> {
     let n_threads = rayon::current_num_threads().max(1);
     let chunk = pairs.len().div_ceil(n_threads);
     pairs
         .par_chunks(chunk)
-        .map(|c| fold_sequential(q, k, v, c, eps))
+        .map(|c| fold_sequential(q, k, v, c, v_ok, eps))
         .reduce(
             || vec![RowAcc::new(v.ncols()); q.nrows()],
             |mut a, b| {
@@ -201,6 +278,16 @@ fn fold_parallel(
                 a
             },
         )
+}
+
+/// Per-value-row NULL flags, computed once per call: `v_ok[j]` is
+/// false iff any component of value row `j` is NaN. Hoisting the scan
+/// out of the pair loop keeps the per-pair cost at one bool load
+/// (pairs typically outnumber value rows by the mask's fan-out).
+fn value_row_ok(v: &ArrayView2<'_, f64>) -> Vec<bool> {
+    (0..v.nrows())
+        .map(|j| !v.row(j).iter().any(|c| c.is_nan()))
+        .collect()
 }
 
 /// Masked attention over a pair stream (see module docs).
@@ -213,9 +300,21 @@ fn fold_parallel(
 /// * `eps`: temperature; `Eps::ZERO`, finite positive, and `Eps::INF`
 ///   are all supported.
 ///
+/// ### NULL / non-finite semantics (pinned by `tests/numerical_edges.rs`,
+/// mod `masked_attention_nan_policy`)
+///
+/// NaN is the engine's encoding of SQL NULL. A pair `(i, j)` is
+/// SKIPPED, in every eps regime, when its score `q_i . k_j` is NaN
+/// (NaN anywhere in `q_i` or `k_j` makes the dot NaN) or when any
+/// component of value row `v_j` is NaN — the identical NULL discipline
+/// of [`grouped_softavg`] (PG two-argument aggregates, cf.
+/// `corr`/`covar_samp`). Infinite scores are real values, not NULLs:
+/// see [`RowAcc::absorb`]'s policy. bruce-pg's `ScalarAcc` mirrors
+/// this policy (C2).
+///
 /// Returns `(out, covered)` where `out` is `(N_q, d_v)` and
 /// `covered[i]` is `false` (with a zero output row) iff no pair
-/// mentioned row `i`.
+/// mentioned row `i` or every pair mentioning it was skipped as NULL.
 pub fn masked_attention(
     q: &ArrayView2<'_, f64>,
     k: &ArrayView2<'_, f64>,
@@ -245,10 +344,11 @@ pub fn masked_attention(
         }
     }
 
+    let v_ok = value_row_ok(v);
     let accs = if pairs.len() < PAIR_PARALLEL_THRESHOLD {
-        fold_sequential(q, k, v, pairs, eps)
+        fold_sequential(q, k, v, pairs, &v_ok, eps)
     } else {
-        fold_parallel(q, k, v, pairs, eps)
+        fold_parallel(q, k, v, pairs, &v_ok, eps)
     };
 
     let d_v = v.ncols();
@@ -288,6 +388,308 @@ pub fn window_pairs(n: usize, w: usize) -> Vec<(usize, usize)> {
         }
     }
     p
+}
+
+/// Grouped soft-average: the fused physical operator for
+/// `SELECT g, SOFTAVG(v WEIGHT sim(k, x) TEMP eps) ... GROUP BY g`.
+///
+/// Compared with routing the same computation through
+/// [`masked_attention`], this operator (a) takes the grouping column as
+/// a dictionary-encoded id array instead of a materialised `(i, j)`
+/// pair stream, and (b) fuses an optional `eps = 0` selection mask into
+/// the same pass, so filtered rows are never scored. One scan; per
+/// group only the `(mu, z, u)` accumulator of the max-shifted
+/// representation.
+///
+/// * `x`: `(d_k,)` query vector (shared by every group).
+/// * `k`: `(N, d_k)` keys; `v`: `(N, d_v)` values.
+/// * `gid`: `(N,)` group ids in `[0, n_groups)`.
+/// * `sel`: optional `(N,)` selection; `false` rows are skipped
+///   before scoring (the pushed-down exact filter).
+/// * `eps`: temperature; all three regimes supported.
+///
+/// ### NULL / non-finite semantics (pinned by `tests/numerical_edges.rs`)
+///
+/// NaN is this engine's encoding of SQL NULL (bruce-query's ingest
+/// maps Parquet NULL → NaN). SOFTAVG is a two-argument aggregate
+/// (value, weight-score), and per PG's two-argument-aggregate NULL
+/// discipline (C4; cf. `corr`, `covar_samp`: "rows with either input
+/// null are ignored") a row is SKIPPED in **every** ε regime when its
+/// score is NaN or **any** component of its value row is NaN (the
+/// value is one vector datum). A group left with no surviving rows is
+/// uncovered — SQL NULL. Infinite scores are real values, not NULLs:
+/// `+inf` at finite ε takes argmax semantics, `-inf` weighs 0 (an
+/// all-`-inf` group is uncovered), and ε = ∞ stays score-blind; see
+/// `RowAcc::absorb` for the full policy.
+///
+/// Returns `(out, covered)`: `out` is `(n_groups, d_v)`; `covered[g]`
+/// is `false` (zero row) iff no selected row carried group `g`.
+pub fn grouped_softavg(
+    x: &ArrayView1<'_, f64>,
+    k: &ArrayView2<'_, f64>,
+    v: &ArrayView2<'_, f64>,
+    gid: &[u32],
+    n_groups: usize,
+    sel: Option<&[bool]>,
+    eps: Eps,
+) -> Result<(Array2<f64>, Vec<bool>), BruceError> {
+    let n = k.nrows();
+    if v.nrows() != n {
+        return Err(BruceError::DimensionMismatch {
+            expected: n,
+            got: v.nrows(),
+        });
+    }
+    if k.ncols() != x.len() {
+        return Err(BruceError::DimensionMismatch {
+            expected: x.len(),
+            got: k.ncols(),
+        });
+    }
+    if gid.len() != n {
+        return Err(BruceError::DimensionMismatch {
+            expected: n,
+            got: gid.len(),
+        });
+    }
+    if let Some(s) = sel {
+        if s.len() != n {
+            return Err(BruceError::DimensionMismatch {
+                expected: n,
+                got: s.len(),
+            });
+        }
+    }
+    if let Some(&g) = gid.iter().max() {
+        if (g as usize) >= n_groups {
+            return Err(BruceError::DimensionMismatch {
+                expected: n_groups,
+                got: g as usize + 1,
+            });
+        }
+    }
+    let d_v = v.ncols();
+
+    let fold_range = |lo: usize, hi: usize| -> Vec<RowAcc> {
+        let mut accs = vec![RowAcc::new(d_v); n_groups];
+        for r in lo..hi {
+            if let Some(s) = sel {
+                if !s[r] {
+                    continue;
+                }
+            }
+            let score = x.dot(&k.row(r));
+            let v_row = v.row(r);
+            // SQL NULL discipline (C4): NaN encodes NULL; skip the row
+            // if either aggregate argument is NULL, in every ε regime
+            // (see the doc comment; pinned by tests/numerical_edges.rs).
+            if score.is_nan() || v_row.iter().any(|c| c.is_nan()) {
+                continue;
+            }
+            accs[gid[r] as usize].absorb(score, &v_row, eps);
+        }
+        accs
+    };
+
+    let accs = if n < PAIR_PARALLEL_THRESHOLD {
+        fold_range(0, n)
+    } else {
+        let n_threads = rayon::current_num_threads().max(1);
+        let chunk = n.div_ceil(n_threads);
+        let bounds: Vec<(usize, usize)> = (0..n)
+            .step_by(chunk)
+            .map(|lo| (lo, (lo + chunk).min(n)))
+            .collect();
+        bounds
+            .par_iter()
+            .map(|&(lo, hi)| fold_range(lo, hi))
+            .reduce(
+                || vec![RowAcc::new(d_v); n_groups],
+                |mut a, b| {
+                    for (ra, rb) in a.iter_mut().zip(b.iter()) {
+                        ra.merge(rb, eps);
+                    }
+                    a
+                },
+            )
+    };
+
+    let mut out = Array2::<f64>::zeros((n_groups, d_v));
+    let mut covered = vec![false; n_groups];
+    for (g, acc) in accs.iter().enumerate() {
+        if let Some(row) = acc.finalize() {
+            covered[g] = true;
+            for (c, val) in row.into_iter().enumerate() {
+                out[(g, c)] = val;
+            }
+        }
+    }
+    Ok((out, covered))
+}
+
+/// f32 dot product with 4-way unrolled partial sums. The unroll widens
+/// the autovectorizer's window AND cuts each partial sum's sequential
+/// rounding chain to length d/4 (pairwise-style error growth instead
+/// of a single length-d chain).
+///
+/// SIMD note (2026-08-03, measured, change reverted per the >=5% keep
+/// gate): an explicit AVX2+FMA kernel (4x 256-bit fmadd accumulators,
+/// runtime `is_x86_feature_detected!` dispatch) was implemented and
+/// benchmarked. Single-thread dot microbench at d=384: 1.87x faster
+/// cache-resident (73.7 vs 39.6 GB/s), 1.27x in DRAM. But the full
+/// `grouped_softavg_f32` operator is rayon-wide and its gated
+/// 1M x d384 config is DRAM-bandwidth-bound (~60 GB/s aggregate), so
+/// the criterion median moved only 25.60 -> 25.03 ms (-2.2%), below
+/// the 5% keep threshold — the unsafe was not worth carrying. A safe
+/// 8-way-unrolled variant was also measured and is SLOWER than this
+/// 4-way form under the baseline x86-64 target (0.298 vs 0.159 ms
+/// cache-resident; the wider accumulator array defeats the SSE2
+/// autovectorizer). Numbers in
+/// paper_sigmod_bruce/experiments/m2_mixed_precision/results_m2.json
+/// (key "avx2_experiment_2026-08-03").
+#[inline]
+fn dot_f32(a: &[f32], b: &[f32]) -> f32 {
+    let n4 = a.len() - a.len() % 4;
+    let mut acc = [0.0f32; 4];
+    for (ca, cb) in a[..n4].chunks_exact(4).zip(b[..n4].chunks_exact(4)) {
+        acc[0] += ca[0] * cb[0];
+        acc[1] += ca[1] * cb[1];
+        acc[2] += ca[2] * cb[2];
+        acc[3] += ca[3] * cb[3];
+    }
+    for (x, y) in a[n4..].iter().zip(&b[n4..]) {
+        acc[0] += x * y;
+    }
+    (acc[0] + acc[1]) + (acc[2] + acc[3])
+}
+
+/// f32-storage variant of [`grouped_softavg`]: identical contract, but
+/// `k` and `x` are `f32` and each row's score is computed in f32.
+///
+/// Precision contract: **f32 storage and scoring, f64 accumulation.**
+/// The dot product runs in f32 (4-way unrolled partial sums), the
+/// score is widened to f64 exactly once per row, and everything
+/// downstream — the max-shifted `(mu, z, u)` monoid, `exp`, the merge,
+/// the finalize — is the same f64 [`RowAcc`] the f64 kernel uses.
+/// Rationale: at the scan's scale the wall is memory bandwidth, so
+/// halving the key bytes is the win; the anchoring that keeps sharp-eps
+/// answers finite lives in the f64 fold and is unaffected by the
+/// storage dtype. `v` stays f64 (one column; not the bandwidth term).
+///
+/// Same rayon chunk-reduce structure and threshold as the f64 kernel.
+/// Non-contiguous key rows fall back to ndarray's f32 dot (still f32
+/// scoring, sequential summation order).
+pub fn grouped_softavg_f32(
+    x: &ArrayView1<'_, f32>,
+    k: &ArrayView2<'_, f32>,
+    v: &ArrayView2<'_, f64>,
+    gid: &[u32],
+    n_groups: usize,
+    sel: Option<&[bool]>,
+    eps: Eps,
+) -> Result<(Array2<f64>, Vec<bool>), BruceError> {
+    let n = k.nrows();
+    if v.nrows() != n {
+        return Err(BruceError::DimensionMismatch {
+            expected: n,
+            got: v.nrows(),
+        });
+    }
+    if k.ncols() != x.len() {
+        return Err(BruceError::DimensionMismatch {
+            expected: x.len(),
+            got: k.ncols(),
+        });
+    }
+    if gid.len() != n {
+        return Err(BruceError::DimensionMismatch {
+            expected: n,
+            got: gid.len(),
+        });
+    }
+    if let Some(s) = sel {
+        if s.len() != n {
+            return Err(BruceError::DimensionMismatch {
+                expected: n,
+                got: s.len(),
+            });
+        }
+    }
+    if let Some(&g) = gid.iter().max() {
+        if (g as usize) >= n_groups {
+            return Err(BruceError::DimensionMismatch {
+                expected: n_groups,
+                got: g as usize + 1,
+            });
+        }
+    }
+    let d_v = v.ncols();
+
+    // one contiguous copy of the query vector (d floats, per call)
+    let xs: Vec<f32> = x.iter().copied().collect();
+
+    let fold_range = |lo: usize, hi: usize| -> Vec<RowAcc> {
+        let mut accs = vec![RowAcc::new(d_v); n_groups];
+        for r in lo..hi {
+            if let Some(s) = sel {
+                if !s[r] {
+                    continue;
+                }
+            }
+            let row = k.row(r);
+            let s32 = match row.as_slice() {
+                Some(rs) => dot_f32(&xs, rs),
+                None => row.dot(x),
+            };
+            // widen once per row; the fold below is all-f64
+            let score = s32 as f64;
+            let v_row = v.row(r);
+            // SQL NULL discipline (C4): NaN encodes NULL; skip the row
+            // if either aggregate argument is NULL, in every ε regime
+            // (same contract as grouped_softavg; pinned by
+            // tests/numerical_edges.rs).
+            if score.is_nan() || v_row.iter().any(|c| c.is_nan()) {
+                continue;
+            }
+            accs[gid[r] as usize].absorb(score, &v_row, eps);
+        }
+        accs
+    };
+
+    let accs = if n < PAIR_PARALLEL_THRESHOLD {
+        fold_range(0, n)
+    } else {
+        let n_threads = rayon::current_num_threads().max(1);
+        let chunk = n.div_ceil(n_threads);
+        let bounds: Vec<(usize, usize)> = (0..n)
+            .step_by(chunk)
+            .map(|lo| (lo, (lo + chunk).min(n)))
+            .collect();
+        bounds
+            .par_iter()
+            .map(|&(lo, hi)| fold_range(lo, hi))
+            .reduce(
+                || vec![RowAcc::new(d_v); n_groups],
+                |mut a, b| {
+                    for (ra, rb) in a.iter_mut().zip(b.iter()) {
+                        ra.merge(rb, eps);
+                    }
+                    a
+                },
+            )
+    };
+
+    let mut out = Array2::<f64>::zeros((n_groups, d_v));
+    let mut covered = vec![false; n_groups];
+    for (g, acc) in accs.iter().enumerate() {
+        if let Some(row) = acc.finalize() {
+            covered[g] = true;
+            for (c, val) in row.into_iter().enumerate() {
+                out[(g, c)] = val;
+            }
+        }
+    }
+    Ok((out, covered))
 }
 
 #[cfg(test)]
@@ -453,9 +855,10 @@ mod tests {
         let k = pseudo(n, 4, 32);
         let v = pseudo(n, 3, 33);
         let pairs = causal_pairs(n);
+        let v_ok = value_row_ok(&v.view());
         for eps in [Eps::ZERO, Eps(0.9), Eps::INF] {
-            let seq = fold_sequential(&q.view(), &k.view(), &v.view(), &pairs, eps);
-            let par = fold_parallel(&q.view(), &k.view(), &v.view(), &pairs, eps);
+            let seq = fold_sequential(&q.view(), &k.view(), &v.view(), &pairs, &v_ok, eps);
+            let par = fold_parallel(&q.view(), &k.view(), &v.view(), &pairs, &v_ok, eps);
             for (a, b) in seq.iter().zip(par.iter()) {
                 match (a.finalize(), b.finalize()) {
                     (Some(x), Some(y)) => {
@@ -477,5 +880,172 @@ mod tests {
         let v = pseudo(2, 2, 43);
         let r = masked_attention(&q.view(), &k.view(), &v.view(), &[(0, 5)], Eps::ONE);
         assert!(r.is_err());
+    }
+
+    /// PARALLEL-003: grouped_softavg must agree with masked_attention
+    /// routed through an explicit (group, row) pair stream, in every
+    /// temperature regime, with and without a fused selection.
+    #[test]
+    fn grouped_softavg_matches_masked_attention() {
+        let n = 500;
+        let d_k = 8;
+        let d_v = 3;
+        let n_groups = 7;
+        let k = pseudo(n, d_k, 11);
+        let v = pseudo(n, d_v, 12);
+        let xq = pseudo(1, d_k, 13);
+        let x = xq.row(0).to_owned();
+        let gid: Vec<u32> = (0..n).map(|r| ((r * 31 + 7) % n_groups) as u32).collect();
+        let sel: Vec<bool> = (0..n).map(|r| r % 3 != 0).collect();
+
+        for eps in [Eps::ZERO, Eps(0.7), Eps::INF] {
+            for use_sel in [false, true] {
+                // reference: pair stream through masked_attention
+                let mut q = Array2::<f64>::zeros((n_groups, d_k));
+                for g in 0..n_groups {
+                    for c in 0..d_k {
+                        q[(g, c)] = x[c];
+                    }
+                }
+                let pairs: Vec<(usize, usize)> = (0..n)
+                    .filter(|&r| !use_sel || sel[r])
+                    .map(|r| (gid[r] as usize, r))
+                    .collect();
+                let (want, want_cov) =
+                    masked_attention(&q.view(), &k.view(), &v.view(), &pairs, eps).unwrap();
+
+                let (got, got_cov) = grouped_softavg(
+                    &x.view(),
+                    &k.view(),
+                    &v.view(),
+                    &gid,
+                    n_groups,
+                    if use_sel { Some(&sel) } else { None },
+                    eps,
+                )
+                .unwrap();
+
+                assert_eq!(want_cov, got_cov);
+                for g in 0..n_groups {
+                    for c in 0..d_v {
+                        assert_abs_diff_eq!(want[(g, c)], got[(g, c)], epsilon = 1e-12);
+                    }
+                }
+            }
+        }
+    }
+
+    /// MIXED-001: the f32 kernel must agree with the f64 kernel run on
+    /// the SAME stored numbers (f32 values upcast) to within the
+    /// scoring-precision budget: the only difference between the two
+    /// paths is the f32 dot product, so the output error is bounded by
+    /// the score rounding amplified by 1/eps. Covered flags must agree
+    /// exactly. Values are offset away from zero so relative error is
+    /// well-defined.
+    #[test]
+    fn grouped_softavg_f32_matches_f64_kernel() {
+        let n = 4000;
+        let d_k = 16;
+        let d_v = 2;
+        let n_groups = 11;
+        let k32 = pseudo(n, d_k, 51).mapv(|x| x as f32);
+        let k64 = k32.mapv(|x| x as f64); // identical stored numbers
+        let v = pseudo(n, d_v, 52).mapv(|x| x + 2.0);
+        let x32 = pseudo(1, d_k, 53).row(0).mapv(|x| x as f32);
+        let x64 = x32.mapv(|x| x as f64);
+        let gid: Vec<u32> = (0..n).map(|r| ((r * 29 + 5) % n_groups) as u32).collect();
+        let sel: Vec<bool> = (0..n).map(|r| r % 7 != 0).collect();
+
+        for eps in [Eps(0.1), Eps::ONE] {
+            for use_sel in [false, true] {
+                let s = if use_sel { Some(sel.as_slice()) } else { None };
+                let (want, want_cov) =
+                    grouped_softavg(&x64.view(), &k64.view(), &v.view(), &gid, n_groups, s, eps)
+                        .unwrap();
+                let (got, got_cov) = grouped_softavg_f32(
+                    &x32.view(),
+                    &k32.view(),
+                    &v.view(),
+                    &gid,
+                    n_groups,
+                    s,
+                    eps,
+                )
+                .unwrap();
+                assert_eq!(want_cov, got_cov);
+                for g in 0..n_groups {
+                    for c in 0..d_v {
+                        let rel = (got[(g, c)] - want[(g, c)]).abs() / want[(g, c)].abs();
+                        assert!(
+                            rel < 1e-5,
+                            "eps={:?} sel={use_sel} group {g} col {c}: rel err {rel:e}",
+                            eps
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /// MIXED-002: chunking must not change the f32 kernel's answer
+    /// beyond f64 accumulation-order noise — the scores are identical
+    /// f32 values in every chunking, only the f64 merge order differs.
+    #[test]
+    fn grouped_softavg_f32_parallel_matches_single_thread() {
+        let n = (1 << 15) + 999;
+        let d_k = 8;
+        let k = pseudo(n, d_k, 61).mapv(|x| x as f32);
+        let v = pseudo(n, 2, 62).mapv(|x| x + 2.0);
+        let x = pseudo(1, d_k, 63).row(0).mapv(|x| x as f32);
+        let gid: Vec<u32> = (0..n).map(|r| (r % 13) as u32).collect();
+        let (par, cov_par) =
+            grouped_softavg_f32(&x.view(), &k.view(), &v.view(), &gid, 13, None, Eps(0.5)).unwrap();
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(1)
+            .build()
+            .unwrap();
+        let (seq, cov_seq) = pool
+            .install(|| {
+                grouped_softavg_f32(&x.view(), &k.view(), &v.view(), &gid, 13, None, Eps(0.5))
+            })
+            .unwrap();
+        assert_eq!(cov_par, cov_seq);
+        for g in 0..13 {
+            for c in 0..2 {
+                assert_abs_diff_eq!(par[(g, c)], seq[(g, c)], epsilon = 1e-12);
+            }
+        }
+    }
+
+    /// PARALLEL-004: result must not depend on the chunking. We force
+    /// the parallel path by exceeding the threshold and compare against
+    /// a hand-rolled sequential fold.
+    #[test]
+    fn grouped_softavg_parallel_matches_sequential() {
+        let n = (1 << 15) + 1234;
+        let d_k = 4;
+        let k = pseudo(n, d_k, 21);
+        let v = pseudo(n, 2, 22);
+        let xq = pseudo(1, d_k, 23);
+        let x = xq.row(0).to_owned();
+        let gid: Vec<u32> = (0..n).map(|r| (r % 13) as u32).collect();
+        let (par, _) =
+            grouped_softavg(&x.view(), &k.view(), &v.view(), &gid, 13, None, Eps(0.5)).unwrap();
+
+        // sequential reference via the pair path below threshold is too
+        // slow to build here; instead run the same operator on a single
+        // rayon thread pool of one.
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(1)
+            .build()
+            .unwrap();
+        let (seq, _) = pool
+            .install(|| grouped_softavg(&x.view(), &k.view(), &v.view(), &gid, 13, None, Eps(0.5)))
+            .unwrap();
+        for g in 0..13 {
+            for c in 0..2 {
+                assert_abs_diff_eq!(par[(g, c)], seq[(g, c)], epsilon = 1e-12);
+            }
+        }
     }
 }

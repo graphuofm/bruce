@@ -59,3 +59,9 @@ harness = false
 [[bench]]
 name = "mask_bench"
 harness = false
+
+# Workstream 17 (Track 6): fold-kernel + KvMemory criterion suite with
+# saved baselines; compared by scripts/bench_compare.py.
+[[bench]]
+name = "fold"
+harness = false

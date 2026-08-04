@@ -288,6 +288,25 @@ class KvMemory:
     def audit_log_len(self) -> int:
         """Length of the audit log."""
         ...
+    def bulk_insert(
+        self,
+        ids: list[str],
+        keys: npt.NDArray[np.float64],
+        values: npt.NDArray[np.float64],
+        owner: str,
+    ) -> int:
+        """Write n rows in one call; equivalent to a `write` loop but with one
+        shared timestamp per batch. All-or-nothing: a shape or ownership error
+        leaves the memory untouched. Returns the number of rows written."""
+        ...
+    def snapshot(self) -> KvSnapshot:
+        """Export the live rows (tombstones skipped, insertion order kept)."""
+        ...
+    @staticmethod
+    def restore(snap: KvSnapshot) -> KvMemory:
+        """Rebuild from a snapshot; decode results are bitwise identical.
+        Owners and write timestamps survive; the audit log starts empty."""
+        ...
     def save_parquet(self, path: str) -> None:
         """Persist to a Parquet file; audit log goes to <path>.audit.jsonl alongside."""
         ...
@@ -295,6 +314,61 @@ class KvMemory:
     def load_parquet(path: str) -> KvMemory:
         """Load a snapshot from a Parquet file; restores <path>.audit.jsonl if present."""
         ...
+
+class KvSnapshot:
+    """Contiguous, row-major snapshot of a KvMemory's live rows.
+
+    Produced by `KvMemory.snapshot()`, consumed by `KvMemory.restore`.
+    Every accessor copies once out of the engine buffer — cache the result
+    if you read it repeatedly. Arrow/Parquet wrapping belongs at this layer
+    or above, never in bruce-core.
+    """
+
+    @property
+    def n_rows(self) -> int:
+        """Number of live rows."""
+        ...
+    @property
+    def d_k(self) -> int:
+        """Key dimensionality."""
+        ...
+    @property
+    def d_v(self) -> int:
+        """Value dimensionality."""
+        ...
+    @property
+    def ids(self) -> list[str]:
+        """Live fact ids, in insertion order."""
+        ...
+    @property
+    def owners(self) -> list[str]:
+        """Row owners, parallel to `ids`."""
+        ...
+    @property
+    def written_at(self) -> npt.NDArray[np.float64]:
+        """Row write timestamps (unix seconds), parallel to `ids`."""
+        ...
+    @property
+    def keys(self) -> npt.NDArray[np.float64]:
+        """Keys as an (n_rows, d_k) float64 array."""
+        ...
+    @property
+    def values(self) -> npt.NDArray[np.float64]:
+        """Values as an (n_rows, d_v) float64 array."""
+        ...
+    def __len__(self) -> int: ...
+    @staticmethod
+    def from_arrays(
+        ids: list[str],
+        owners: list[str],
+        written_at: npt.NDArray[np.float64],
+        keys: npt.NDArray[np.float64],
+        values: npt.NDArray[np.float64],
+    ) -> KvSnapshot:
+        """Reassemble a snapshot from raw buffers (e.g. read back from a file
+        written at this layer). Malformed buffers raise ValueError."""
+        ...
+
 
 class PartialTriple:
     """One partition's partial F_eps state (m, num, den) for the Lemma B distributed reduction."""
@@ -429,6 +503,36 @@ def window_pairs(n: int, w: int) -> npt.NDArray[np.int64]:
     """The sliding-window mask {(i, j) : 0 <= i - j <= w} as an int64 array of shape (P, 2)."""
     ...
 
+def grouped_softavg(
+    x: npt.NDArray[np.float64],
+    k: npt.NDArray[np.float64],
+    v: npt.NDArray[np.float64],
+    gid: npt.NDArray[np.uint32],
+    n_groups: int,
+    eps: float = 1.0,
+    sel: npt.NDArray[np.bool_] | None = None,
+) -> tuple[npt.NDArray[np.float64], list[bool]]:
+    """Fused grouped soft-average, the physical operator behind
+    `SELECT g, SOFTAVG(v WEIGHT sim(k, :x) TEMP eps) ... GROUP BY g`.
+
+    `gid` is the dictionary-encoded grouping column (values in [0, n_groups));
+    `sel` is an optional boolean selection evaluated BEFORE scoring (the
+    pushed-down filter). One scan, one (mu, z, u) accumulator per group.
+    Returns (out of shape (n_groups, d_v), covered)."""
+    ...
+
+def grouped_softavg_f32(
+    x: npt.NDArray[np.float32],
+    k: npt.NDArray[np.float32],
+    v: npt.NDArray[np.float64],
+    gid: npt.NDArray[np.uint32],
+    n_groups: int,
+    eps: float = 1.0,
+    sel: npt.NDArray[np.bool_] | None = None,
+) -> tuple[npt.NDArray[np.float64], list[bool]]:
+    """f32-storage grouped soft-average: f32 scoring, f64 accumulation; returns (out (n_groups, d_v), covered)."""
+    ...
+
 def eps_star(delta: float, gap: float, v_max: float, n: int, kappa: int = 1) -> float:
     """Certified-smoothing temperature eps*: largest eps with ||A_eps - A_0||_inf <= delta."""
     ...
@@ -436,3 +540,62 @@ def eps_star(delta: float, gap: float, v_max: float, n: int, kappa: int = 1) -> 
 def dequantization_bound(scores: list[float], v_max: float, eps: float) -> float:
     """Evaluate the dequantization bound 2*v_max*(N-kappa)/kappa*exp(-gap/eps) on actual scores."""
     ...
+
+
+class QuerySession:
+    """One eps-algebra database session.
+
+    Register Parquet tables, attach key (embedding) columns, create
+    maintained views, run SQL of the form
+    `SELECT g, SOFTAVG(val, SIM(key, :param), eps) FROM t [WHERE col >= c]
+    GROUP BY g`, and write through it.
+    """
+
+    def __init__(self) -> None: ...
+    def register_parquet(self, name: str, path: str) -> None:
+        """Load a Parquet file as a table (strings dictionary-encoded at load).
+
+        Registering over an existing name replaces the table and drops any
+        maintained views built on the old one."""
+        ...
+    def attach_key(
+        self, table: str, name: str, keys: npt.NDArray[np.float64] | npt.NDArray[np.float32]
+    ) -> None:
+        """Attach an externally computed key matrix as a column. Dispatch is on
+        dtype: float64 -> KeyF64 (f64 kernel), float32 -> KeyF32 stored WITHOUT
+        upcasting (f32 scoring, f64 accumulation — half the scan bytes)."""
+        ...
+    def create_view(
+        self,
+        name: str,
+        table: str,
+        group_col: str,
+        val_col: str,
+        key_col: str,
+        x: npt.NDArray[np.float64],
+        eps: float = 1.0,
+    ) -> None:
+        """Create a maintained soft-aggregate view, updated incrementally by
+        `insert_row` / `delete_where`. View names are unique per session and
+        `eps` must be > 0 (the eps=0 endpoint has no incremental form)."""
+        ...
+    def run(
+        self, sql: str, params: dict[str, npt.NDArray[np.float64]]
+    ) -> tuple[list[str], list[float], str]:
+        """Parse, optimize, cost-plan, and execute one SQL query.
+        Returns (labels, values, explain)."""
+        ...
+    def insert_row(
+        self,
+        table: str,
+        scalars: dict[str, float],
+        labels: dict[str, str],
+        keys: dict[str, npt.NDArray[np.float64]],
+    ) -> None:
+        """Append one row (scalars, labels, keys given per column name);
+        maintained views update incrementally."""
+        ...
+    def delete_where(self, table: str, col: str, op: str, value: float) -> int:
+        """Delete rows matching `col <op> value` (`op` in {">=", "="}),
+        maintaining views; returns the number of deleted rows."""
+        ...

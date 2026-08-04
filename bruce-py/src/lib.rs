@@ -39,10 +39,11 @@ use bruce_core::join::{
     hash_join as rs_hash_join, lftj_three as rs_lftj_three, sort_merge_join as rs_sort_merge,
 };
 use bruce_core::mask::{
-    causal_pairs as rs_causal_pairs, masked_attention as rs_masked_attention,
+    causal_pairs as rs_causal_pairs, grouped_softavg as rs_grouped_softavg,
+    grouped_softavg_f32 as rs_grouped_softavg_f32, masked_attention as rs_masked_attention,
     window_pairs as rs_window_pairs,
 };
-use bruce_core::memory::KvMemory as RsKv;
+use bruce_core::memory::{KvMemory as RsKv, KvSnapshot as RsKvSnapshot};
 use bruce_core::merkle::MerkleAuditLog as RsMerkle;
 use bruce_core::provenance::{Identity as RsIdentity, SignedFact as RsSigned};
 use bruce_core::semiring::{
@@ -56,7 +57,7 @@ use bruce_core::tree::{
     tree_causal_attention as rs_tree_attention,
 };
 use bruce_core::{Eps, F_eps, IncrementalMemory as RsMem, Sim};
-use ndarray::Array1;
+use ndarray::{Array1, Array2};
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -847,6 +848,204 @@ impl PyKvMemory {
             .map(|inner| Self { inner })
             .map_err(|e| PyValueError::new_err(e.to_string()))
     }
+
+    /// Bulk-insert `len(ids)` rows from 2-D arrays `keys` (n, d_k)
+    /// and `values` (n, d_v), all owned by `owner`.
+    ///
+    /// Semantically identical to `n` sequential `write` calls (same
+    /// audit-log entries, same owner enforcement, last-write-wins for
+    /// ids duplicated within the batch) except the whole batch shares
+    /// one wall-clock timestamp. All-or-nothing: shape or ownership
+    /// errors leave the memory untouched.
+    ///
+    /// Copies, honestly: the numpy buffers are read zero-copy when
+    /// C-contiguous float64 (one engine-side copy per row into the
+    /// store, same as `write`); non-contiguous input costs one extra
+    /// flattening copy here.
+    fn bulk_insert(
+        &mut self,
+        ids: Vec<String>,
+        keys: PyReadonlyArray2<'_, f64>,
+        values: PyReadonlyArray2<'_, f64>,
+        owner: &str,
+    ) -> PyResult<usize> {
+        let n = ids.len();
+        let (kr, kc) = keys.as_array().dim();
+        let (vr, vc) = values.as_array().dim();
+        // Shape check HERE, not just total length in the core: a
+        // mis-shaped (n', d') buffer with n' * d' == n * d_k would
+        // otherwise be silently re-chunked into wrong rows.
+        if kr != n || kc != self.inner.d_k() {
+            return Err(PyValueError::new_err(format!(
+                "keys shape ({kr}, {kc}) != (len(ids)={n}, d_k={})",
+                self.inner.d_k()
+            )));
+        }
+        if vr != n || vc != self.inner.d_v() {
+            return Err(PyValueError::new_err(format!(
+                "values shape ({vr}, {vc}) != (len(ids)={n}, d_v={})",
+                self.inner.d_v()
+            )));
+        }
+        // DEFECT (exposed by m17 test_bulk_insert_fortran_order_input):
+        // PyReadonlyArray::as_slice() hands back the RAW buffer of any
+        // contiguous array, including F-contiguous ones, which silently
+        // scrambles rows into column-major order. Guard on ndarray's
+        // standard (row-major) layout instead; anything else takes the
+        // logical-order flattening copy.
+        let ka = keys.as_array();
+        let va = values.as_array();
+        match (ka.as_slice(), va.as_slice()) {
+            (Some(k), Some(v)) => self.inner.bulk_insert(&ids, k, v, owner),
+            _ => {
+                // non-C-contiguous input: flatten in logical row-major order
+                let k: Vec<f64> = ka.iter().copied().collect();
+                let v: Vec<f64> = va.iter().copied().collect();
+                self.inner.bulk_insert(&ids, &k, &v, owner)
+            }
+        }
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
+    /// Export every live row into one contiguous `KvSnapshot`
+    /// (tombstoned rows skipped, insertion order preserved — the same
+    /// order every decode read folds in, so a decode over the snapshot
+    /// buffers reproduces the in-memory decode bit-for-bit).
+    fn snapshot(&self) -> PyKvSnapshot {
+        PyKvSnapshot {
+            inner: self.inner.snapshot(),
+        }
+    }
+
+    /// Rebuild a `KvMemory` from a snapshot. Bitwise round-trip:
+    /// `KvMemory.restore(m.snapshot())` produces identical decode
+    /// results. Owners and write timestamps are preserved (so
+    /// owner-enforced delete keeps working); the restored memory
+    /// starts with an empty audit log — audit history travels with
+    /// `save_parquet`/`load_parquet`, not with hot-path snapshots.
+    #[staticmethod]
+    fn restore(snap: PyRef<'_, PyKvSnapshot>) -> PyResult<Self> {
+        RsKv::restore(&snap.inner)
+            .map(|inner| Self { inner })
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+}
+
+/// Contiguous, row-major snapshot of the live rows of a `KvMemory`.
+///
+/// Produced by `KvMemory.snapshot()`, consumed by `KvMemory.restore`.
+/// `keys` / `values` come back as (n_rows, d) float64 numpy arrays —
+/// one copy out of the engine buffer per accessor call (cache them if
+/// read repeatedly). The Arrow/Parquet wrapping of these buffers
+/// belongs to this layer or above, never to bruce-core (C1/C3).
+#[pyclass(name = "KvSnapshot")]
+pub struct PyKvSnapshot {
+    inner: RsKvSnapshot,
+}
+
+#[pymethods]
+impl PyKvSnapshot {
+    /// Number of live rows in the snapshot.
+    #[getter]
+    fn n_rows(&self) -> usize {
+        self.inner.n_rows()
+    }
+
+    /// Key dimensionality.
+    #[getter]
+    fn d_k(&self) -> usize {
+        self.inner.d_k
+    }
+
+    /// Value dimensionality.
+    #[getter]
+    fn d_v(&self) -> usize {
+        self.inner.d_v
+    }
+
+    /// Live fact ids, in insertion order (copy).
+    #[getter]
+    fn ids(&self) -> Vec<String> {
+        self.inner.ids.clone()
+    }
+
+    /// Row owners, parallel to `ids` (copy).
+    #[getter]
+    fn owners(&self) -> Vec<String> {
+        self.inner.owners.clone()
+    }
+
+    /// Row write timestamps (unix seconds), parallel to `ids` (copy).
+    #[getter]
+    fn written_at<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f64>> {
+        self.inner.written_at.clone().into_pyarray_bound(py)
+    }
+
+    /// Keys as an (n_rows, d_k) float64 array (one copy).
+    #[getter]
+    fn keys<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<f64>>> {
+        Array2::from_shape_vec(
+            (self.inner.n_rows(), self.inner.d_k),
+            self.inner.keys.clone(),
+        )
+        .map(|a| a.into_pyarray_bound(py))
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
+    /// Values as an (n_rows, d_v) float64 array (one copy).
+    #[getter]
+    fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<f64>>> {
+        Array2::from_shape_vec(
+            (self.inner.n_rows(), self.inner.d_v),
+            self.inner.values.clone(),
+        )
+        .map(|a| a.into_pyarray_bound(py))
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
+    fn __len__(&self) -> usize {
+        self.inner.n_rows()
+    }
+
+    /// Reassemble a snapshot from raw buffers (e.g. read back from an
+    /// Arrow/Parquet file written at this layer): `ids`/`owners` are
+    /// parallel string lists, `written_at` is (n,), `keys` is
+    /// (n, d_k), `values` is (n, d_v). Validated on restore; malformed
+    /// buffers raise ValueError there, never panic.
+    #[staticmethod]
+    fn from_arrays(
+        ids: Vec<String>,
+        owners: Vec<String>,
+        written_at: PyReadonlyArray1<'_, f64>,
+        keys: PyReadonlyArray2<'_, f64>,
+        values: PyReadonlyArray2<'_, f64>,
+    ) -> PyResult<Self> {
+        let n = ids.len();
+        let (kr, kc) = keys.as_array().dim();
+        let (vr, vc) = values.as_array().dim();
+        if kr != n || vr != n {
+            return Err(PyValueError::new_err(format!(
+                "keys rows {kr} / values rows {vr} != len(ids)={n}"
+            )));
+        }
+        if written_at.as_array().len() != n {
+            return Err(PyValueError::new_err(format!(
+                "written_at length {} != len(ids)={n}",
+                written_at.as_array().len()
+            )));
+        }
+        Ok(Self {
+            inner: RsKvSnapshot {
+                d_k: kc,
+                d_v: vc,
+                ids,
+                owners,
+                written_at: written_at.as_array().iter().copied().collect(),
+                keys: keys.as_array().iter().copied().collect(),
+                values: values.as_array().iter().copied().collect(),
+            },
+        })
+    }
 }
 
 /// One partition's partial F_ε state: (m, num, den) shifted by the
@@ -1288,6 +1487,81 @@ fn masked_attention<'py>(
     Ok((out.into_pyarray_bound(py), covered))
 }
 
+/// Grouped soft-average: fused physical operator for
+/// `SELECT g, SOFTAVG(v WEIGHT sim(k, :x) TEMP eps) ... GROUP BY g`.
+///
+/// `gid` is the dictionary-encoded grouping column (uint32, values in
+/// `[0, n_groups)`); `sel` is an optional boolean selection evaluated
+/// *before* scoring (the pushed-down `eps = 0` filter). One scan, one
+/// `(mu, z, u)` accumulator per group. Returns `(out, covered)` with
+/// `out` of shape `(n_groups, d_v)`.
+#[pyfunction]
+#[pyo3(signature = (x, k, v, gid, n_groups, eps=1.0, sel=None))]
+#[allow(clippy::too_many_arguments)]
+fn grouped_softavg<'py>(
+    py: Python<'py>,
+    x: PyReadonlyArray1<'_, f64>,
+    k: PyReadonlyArray2<'_, f64>,
+    v: PyReadonlyArray2<'_, f64>,
+    gid: PyReadonlyArray1<'_, u32>,
+    n_groups: usize,
+    eps: f64,
+    sel: Option<PyReadonlyArray1<'_, bool>>,
+) -> PyResult<(Bound<'py, PyArray2<f64>>, Vec<bool>)> {
+    let eps = parse_eps(eps)?;
+    let gid_slice = gid.as_slice()?;
+    let sel_vec: Option<Vec<bool>> = sel.as_ref().map(|s| s.as_array().to_vec());
+    let (out, covered) = rs_grouped_softavg(
+        &x.as_array(),
+        &k.as_array(),
+        &v.as_array(),
+        gid_slice,
+        n_groups,
+        sel_vec.as_deref(),
+        eps,
+    )
+    .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    Ok((out.into_pyarray_bound(py), covered))
+}
+
+/// f32-storage variant of `grouped_softavg`: same contract, but `x`
+/// and `k` are float32 and each row's score is computed in f32 (4-way
+/// unrolled partial sums), widened to f64 once per row, and folded by
+/// the same f64 `(mu, z, u)` accumulator. `v` stays float64.
+///
+/// Precision contract: f32 storage/scoring, f64 accumulation —
+/// bandwidth is the scan's wall (half the key bytes), while the
+/// max-shift anchoring that keeps sharp-eps answers finite lives in
+/// the f64 fold.
+#[pyfunction]
+#[pyo3(signature = (x, k, v, gid, n_groups, eps=1.0, sel=None))]
+#[allow(clippy::too_many_arguments)]
+fn grouped_softavg_f32<'py>(
+    py: Python<'py>,
+    x: PyReadonlyArray1<'_, f32>,
+    k: PyReadonlyArray2<'_, f32>,
+    v: PyReadonlyArray2<'_, f64>,
+    gid: PyReadonlyArray1<'_, u32>,
+    n_groups: usize,
+    eps: f64,
+    sel: Option<PyReadonlyArray1<'_, bool>>,
+) -> PyResult<(Bound<'py, PyArray2<f64>>, Vec<bool>)> {
+    let eps = parse_eps(eps)?;
+    let gid_slice = gid.as_slice()?;
+    let sel_vec: Option<Vec<bool>> = sel.as_ref().map(|s| s.as_array().to_vec());
+    let (out, covered) = rs_grouped_softavg_f32(
+        &x.as_array(),
+        &k.as_array(),
+        &v.as_array(),
+        gid_slice,
+        n_groups,
+        sel_vec.as_deref(),
+        eps,
+    )
+    .map_err(|e| PyValueError::new_err(e.to_string()))?;
+    Ok((out.into_pyarray_bound(py), covered))
+}
+
 /// The causal mask `{(i, j) : j <= i}` as an int64 array of shape
 /// `(n(n+1)/2, 2)` — convenience generator for `masked_attention`.
 #[pyfunction]
@@ -1348,8 +1622,12 @@ fn _bruce(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAnonymityGuard>()?;
     m.add_class::<PyEncryptedBlob>()?;
     m.add_class::<PyKvMemory>()?;
+    m.add_class::<PyKvSnapshot>()?;
     m.add_class::<PyPartialTriple>()?;
     m.add_class::<PyStreamingChainJoin>()?;
+    m.add_class::<QuerySession>()?;
+    m.add_function(wrap_pyfunction!(grouped_softavg, m)?)?;
+    m.add_function(wrap_pyfunction!(grouped_softavg_f32, m)?)?;
     m.add_function(wrap_pyfunction!(combine, m)?)?;
     m.add_function(wrap_pyfunction!(finalize, m)?)?;
     m.add_function(wrap_pyfunction!(hash_join, m)?)?;
@@ -1371,4 +1649,145 @@ fn _bruce(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(dequantization_bound, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     Ok(())
+}
+
+// ---------------------------------------------------------------------
+// Query layer surface: the eps-algebra database behind one session.
+// ---------------------------------------------------------------------
+
+use bruce_query::db::{Database as RsDatabase, RowValues};
+use bruce_query::logical::Pred;
+use bruce_query::Table as RsTable;
+use std::collections::HashMap as StdHashMap;
+
+/// One eps-algebra database session: register Parquet tables, attach
+/// key (embedding) columns, create maintained views, run SQL of the
+/// form `SELECT g, SOFTAVG(val, SIM(key, :param), eps) FROM t
+/// [WHERE col >= c] GROUP BY g`, and write through it.
+#[pyclass]
+struct QuerySession {
+    inner: RsDatabase,
+}
+
+#[pymethods]
+impl QuerySession {
+    #[new]
+    fn new() -> Self {
+        QuerySession {
+            inner: RsDatabase::new(),
+        }
+    }
+
+    /// Load a Parquet file as a table (strings dictionary-encoded at load).
+    fn register_parquet(&mut self, name: &str, path: &str) -> PyResult<()> {
+        let t = RsTable::from_parquet(path).map_err(|e| PyValueError::new_err(e.to_string()))?;
+        self.inner.register(name, t);
+        Ok(())
+    }
+
+    /// Attach an externally computed key matrix as a column. Dispatch
+    /// is on dtype: float64 -> KeyF64 (f64 kernel), float32 -> KeyF32
+    /// stored WITHOUT upcasting (f32 kernel: f32 scoring, f64
+    /// accumulation — half the scan bytes).
+    fn attach_key(&mut self, table: &str, name: &str, keys: &Bound<'_, PyAny>) -> PyResult<()> {
+        let t = self
+            .inner
+            .catalog
+            .tables
+            .get_mut(table)
+            .ok_or_else(|| PyValueError::new_err(format!("no table {table}")))?;
+        if let Ok(k64) = keys.extract::<PyReadonlyArray2<'_, f64>>() {
+            return t
+                .attach_key_f64(name, k64.as_array().to_owned())
+                .map_err(|e| PyValueError::new_err(e.to_string()));
+        }
+        if let Ok(k32) = keys.extract::<PyReadonlyArray2<'_, f32>>() {
+            return t
+                .attach_key_f32(name, k32.as_array().to_owned())
+                .map_err(|e| PyValueError::new_err(e.to_string()));
+        }
+        Err(PyValueError::new_err(
+            "attach_key expects a 2-d numpy array of dtype float64 or float32",
+        ))
+    }
+
+    /// Create a maintained soft-aggregate view (incremental under writes).
+    #[pyo3(signature = (name, table, group_col, val_col, key_col, x, eps=1.0))]
+    #[allow(clippy::too_many_arguments)]
+    fn create_view(
+        &mut self,
+        name: &str,
+        table: &str,
+        group_col: &str,
+        val_col: &str,
+        key_col: &str,
+        x: PyReadonlyArray1<'_, f64>,
+        eps: f64,
+    ) -> PyResult<()> {
+        self.inner
+            .create_view(
+                name,
+                table,
+                group_col,
+                val_col,
+                key_col,
+                &x.as_array().to_owned(),
+                eps,
+            )
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
+    /// Parse, optimize, cost-plan, and execute one SQL query.
+    /// Returns `(labels, values, explain)`.
+    fn run(
+        &mut self,
+        sql: &str,
+        params: StdHashMap<String, PyReadonlyArray1<'_, f64>>,
+    ) -> PyResult<(Vec<String>, Vec<f64>, String)> {
+        let p: StdHashMap<String, Array1<f64>> = params
+            .into_iter()
+            .map(|(k, v)| (k, v.as_array().to_owned()))
+            .collect();
+        let (result, planned) = self
+            .inner
+            .run(sql, &p)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        Ok((result.labels, result.values, planned.explain()))
+    }
+
+    /// Append one row (scalars, labels, keys given per column name);
+    /// maintained views update incrementally.
+    #[pyo3(signature = (table, scalars, labels, keys))]
+    fn insert_row(
+        &mut self,
+        table: &str,
+        scalars: StdHashMap<String, f64>,
+        labels: StdHashMap<String, String>,
+        keys: StdHashMap<String, PyReadonlyArray1<'_, f64>>,
+    ) -> PyResult<()> {
+        let row = RowValues {
+            scalars,
+            labels,
+            keys: keys
+                .into_iter()
+                .map(|(k, v)| (k, v.as_array().to_vec()))
+                .collect(),
+        };
+        self.inner
+            .insert_row(table, &row)
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
+    /// Delete rows matching `col <op> value` (`op` in {">=", "="}),
+    /// maintaining views; returns the number of deleted rows.
+    fn delete_where(&mut self, table: &str, col: &str, op: &str, value: f64) -> PyResult<usize> {
+        let pred = match op {
+            ">=" => Pred::GtEq(col.to_string(), value),
+            "=" => Pred::Eq(col.to_string(), value),
+            _ => return Err(PyValueError::new_err(format!("unsupported op {op}"))),
+        };
+        self.inner
+            .delete_where(table, &pred)
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
 }

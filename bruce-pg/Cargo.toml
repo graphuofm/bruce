@@ -1,0 +1,51 @@
+[package]
+name = "bruce_pg"
+# 0.1.0 -> 0.1.1: no functional change; adds the versioned-upgrade path
+# (sql/bruce_pg--0.1.0--0.1.1.sql) exercised by test_i_upgrade_path.
+# 0.1.1 -> 0.1.2: OBSERVABLE aggregate-behaviour change (pg-parity
+# track) — ±Inf scores now follow bruce-core's policy instead of
+# returning NaN via exp(inf - inf), an all--Inf group is SQL NULL, NaN
+# inputs propagate (README.md "Special float values"), and the state
+# grew float8[4] -> float8[5]. See sql/bruce_pg--0.1.1--0.1.2.sql.
+version = "0.1.2"
+edition = "2021"
+authors = ["Jiacheng Ding <jding2@memphis.edu>"]
+license = "Apache-2.0"
+description = "The (mu, z, u) soft-average monoid as a PostgreSQL aggregate (backlog #14; constitution C2)"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+default = ["pg17"]
+pg13 = ["pgrx/pg13", "pgrx-tests/pg13"]
+pg14 = ["pgrx/pg14", "pgrx-tests/pg14"]
+pg15 = ["pgrx/pg15", "pgrx-tests/pg15"]
+pg16 = ["pgrx/pg16", "pgrx-tests/pg16"]
+pg17 = ["pgrx/pg17", "pgrx-tests/pg17"]
+pg18 = ["pgrx/pg18", "pgrx-tests/pg18"]
+pg_test = []
+
+[dependencies]
+# Pinned: cargo-pgrx 0.19.x needs rustc >= 1.96; this machine has 1.95.
+pgrx = "=0.18.1"
+
+[dev-dependencies]
+pgrx-tests = "=0.18.1"
+# Reference implementation for the cross-check tests only: the runtime
+# extension mirrors bruce-core's file-private RowAcc (see src/lib.rs)
+# so the .so does not carry bruce-core's arrow/parquet/crypto tree.
+bruce-core = { path = "../bruce-core" }
+ndarray = "0.16"
+
+[profile.dev]
+panic = "unwind"
+
+[profile.release]
+panic = "unwind"
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+# Standalone crate: NOT a member of the parent bruce_tool workspace.
+[workspace]

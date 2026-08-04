@@ -69,6 +69,7 @@ pub mod distributed;
 pub mod dp;
 pub mod encrypted;
 pub mod error;
+pub mod hnsw;
 pub mod join;
 pub mod mask;
 pub mod memory;

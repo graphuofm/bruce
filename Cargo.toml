@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["bruce-core", "bruce-py", "bruce-cli", "bruce-server"]
+members = ["bruce-core", "bruce-py", "bruce-cli", "bruce-server", "bruce-query"]
 
 [workspace.package]
 version       = "0.1.0"

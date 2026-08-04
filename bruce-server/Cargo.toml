@@ -7,9 +7,21 @@ authors.workspace    = true
 license.workspace    = true
 repository.workspace = true
 
+[lib]
+name = "bruce_server"
+path = "src/lib.rs"
+
 [[bin]]
 name = "bruce-server"
 path = "src/main.rs"
+
+# FLIGHT-001: separate binary for the Arrow Flight surface. The
+# existing `bruce-server` bin fronts KvMemory over HTTP; the Flight
+# surface fronts the bruce-query Database (SQL-in-ticket). Keeping
+# them as two binaries avoids entangling the two state models.
+[[bin]]
+name = "bruce-flight-server"
+path = "src/bin/flight_server.rs"
 
 [dependencies]
 bruce-core         = { path = "../bruce-core" }
@@ -29,3 +41,14 @@ parking_lot        = "0.12"
 # SECURITY-001: JWT auth + optional TLS termination
 jsonwebtoken       = "9.3"
 axum-server        = { version = "0.7", features = ["tls-rustls"] }
+
+# FLIGHT-001: Arrow Flight surface (backlog #16). Versions pinned to
+# the workspace arrow 53 line; tonic/tokio-stream are what
+# arrow-flight 53's generated gRPC service requires.
+bruce-query        = { path = "../bruce-query" }
+arrow              = { workspace = true }
+arrow-flight       = "53"
+tonic              = "0.12"
+futures            = "0.3"
+tokio-stream       = { version = "0.1", features = ["net"] }
+bytes              = "1"

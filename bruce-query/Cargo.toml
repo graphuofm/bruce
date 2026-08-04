@@ -1,0 +1,19 @@
+[package]
+name         = "bruce-query"
+description  = "eps-algebra query layer: parse, plan, optimize, execute"
+version.workspace      = true
+edition.workspace      = true
+rust-version.workspace = true
+authors.workspace      = true
+license.workspace      = true
+
+[dependencies]
+bruce-core = { path = "../bruce-core" }
+ndarray    = { workspace = true }
+sqlparser  = "0.52"
+arrow      = { workspace = true }
+parquet    = { workspace = true }
+thiserror  = { workspace = true }
+
+[dev-dependencies]
+approx = "0.5"

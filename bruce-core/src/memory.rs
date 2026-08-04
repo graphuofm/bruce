@@ -50,11 +50,49 @@ struct Row {
     deleted: bool,
 }
 
+/// Contiguous, row-major snapshot of the **live** rows of a [`KvMemory`].
+///
+/// Produced by [`KvMemory::snapshot`], consumed by [`KvMemory::restore`].
+/// Buffers are plain `Vec<f64>` (row-major, shapes `n_rows × d_k` and
+/// `n_rows × d_v`) so the py/server layer can wrap them in NumPy or Arrow
+/// without bruce-core taking on any format dependency (C1: the Arrow
+/// wrapping belongs to the interchange layer, C3).
+///
+/// Tombstoned rows are excluded. The audit log is **not** part of a
+/// snapshot — durability with audit history is [`KvMemory::save_parquet`]'s
+/// job; this type is the hot-path bulk-export surface (e.g. a serving
+/// engine rebuilding device tensors after a delete).
+#[derive(Debug, Clone, PartialEq)]
+pub struct KvSnapshot {
+    /// Key dimensionality.
+    pub d_k: usize,
+    /// Value dimensionality.
+    pub d_v: usize,
+    /// Live fact ids, in insertion order.
+    pub ids: Vec<String>,
+    /// Row owners, parallel to `ids`.
+    pub owners: Vec<String>,
+    /// Row write timestamps (unix seconds), parallel to `ids`.
+    pub written_at: Vec<f64>,
+    /// Row-major key buffer, `ids.len() * d_k` long.
+    pub keys: Vec<f64>,
+    /// Row-major value buffer, `ids.len() * d_v` long.
+    pub values: Vec<f64>,
+}
+
+impl KvSnapshot {
+    /// Number of live rows in the snapshot.
+    pub fn n_rows(&self) -> usize {
+        self.ids.len()
+    }
+}
+
 /// Append-only K/V memory with owner-enforced delete and audit log.
 ///
 /// Designed to be the **CRUD backend** behind the F_ε operator. It
 /// supports both ε = 0 reads (exact lookup by id) and ε > 0 reads
 /// (top-K similarity search).
+#[derive(Debug)]
 pub struct KvMemory {
     d_k: usize,
     d_v: usize,
@@ -200,6 +238,203 @@ impl KvMemory {
         }
         let ids = alive.into_iter().cloned().collect();
         (ids, k_mat, v_mat)
+    }
+
+    /// Key dimensionality this memory was created with.
+    pub fn d_k(&self) -> usize {
+        self.d_k
+    }
+
+    /// Value dimensionality this memory was created with.
+    pub fn d_v(&self) -> usize {
+        self.d_v
+    }
+
+    /// Bulk-insert `ids.len()` rows from contiguous row-major buffers
+    /// (`keys` is `ids.len() * d_k` long, `values` is `ids.len() * d_v`).
+    ///
+    /// Semantically identical to calling [`KvMemory::write`] once per row
+    /// with the same `owner` — same audit-log entries (`insert`/`update`
+    /// per row), same owner enforcement, same last-write-wins for ids
+    /// duplicated within the batch — except that every row of the batch
+    /// shares one wall-clock timestamp.
+    ///
+    /// All-or-nothing: buffer shapes and ownership are validated for the
+    /// whole batch **before** any row is applied, so a `DimensionMismatch`
+    /// or `PermissionDenied` error leaves rows, insertion order, and the
+    /// audit log untouched (pinned by
+    /// `bulk_insert_owner_conflict_is_all_or_nothing`).
+    ///
+    /// Returns the number of rows applied (= `ids.len()`).
+    pub fn bulk_insert<S: AsRef<str>>(
+        &mut self,
+        ids: &[S],
+        keys: &[f64],
+        values: &[f64],
+        owner: &str,
+    ) -> Result<usize> {
+        let n = ids.len();
+        if keys.len() != n * self.d_k {
+            return Err(BruceError::DimensionMismatch {
+                expected: n * self.d_k,
+                got: keys.len(),
+            });
+        }
+        if values.len() != n * self.d_v {
+            return Err(BruceError::DimensionMismatch {
+                expected: n * self.d_v,
+                got: values.len(),
+            });
+        }
+        // Pre-validate ownership so the batch is atomic. Ids duplicated
+        // *within* the batch all carry the same `owner`, so they cannot
+        // introduce a conflict the pre-scan misses.
+        for id in ids {
+            if let Some(existing) = self.rows.get(id.as_ref()) {
+                if !existing.deleted && existing.owner != owner {
+                    return Err(BruceError::PermissionDenied(
+                        id.as_ref().into(),
+                        existing.owner.clone(),
+                        owner.into(),
+                    ));
+                }
+            }
+        }
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs_f64())
+            .unwrap_or(0.0);
+        self.rows.reserve(n);
+        self.insertion_order.reserve(n);
+        self.log.reserve(n);
+        for (i, id) in ids.iter().enumerate() {
+            let id = id.as_ref();
+            let op = if self.rows.contains_key(id) {
+                "update"
+            } else {
+                self.insertion_order.push(id.into());
+                "insert"
+            };
+            let k = Array1::from(keys[i * self.d_k..(i + 1) * self.d_k].to_vec());
+            let v = Array1::from(values[i * self.d_v..(i + 1) * self.d_v].to_vec());
+            self.rows.insert(
+                id.into(),
+                Row {
+                    k,
+                    v,
+                    owner: owner.into(),
+                    written_at: now,
+                    deleted: false,
+                },
+            );
+            self.log.push(AuditEntry {
+                op: op.into(),
+                fact_id: id.into(),
+                owner: owner.into(),
+                at: now,
+            });
+        }
+        Ok(n)
+    }
+
+    /// Export every live row into one contiguous, row-major
+    /// [`KvSnapshot`]. Tombstoned rows are skipped.
+    ///
+    /// Row order is insertion order — the same order
+    /// [`KvMemory::attention_query`] and [`KvMemory::snapshot_alive`]
+    /// fold in — so a decode over the snapshot buffers reproduces the
+    /// in-memory decode bit-for-bit.
+    pub fn snapshot(&self) -> KvSnapshot {
+        let n = self.len_alive();
+        let mut snap = KvSnapshot {
+            d_k: self.d_k,
+            d_v: self.d_v,
+            ids: Vec::with_capacity(n),
+            owners: Vec::with_capacity(n),
+            written_at: Vec::with_capacity(n),
+            keys: Vec::with_capacity(n * self.d_k),
+            values: Vec::with_capacity(n * self.d_v),
+        };
+        for id in self.insertion_order.iter() {
+            let Some(row) = self.rows.get(id) else {
+                continue;
+            };
+            if row.deleted {
+                continue;
+            }
+            snap.ids.push(id.clone());
+            snap.owners.push(row.owner.clone());
+            snap.written_at.push(row.written_at);
+            snap.keys.extend(row.k.iter().copied());
+            snap.values.extend(row.v.iter().copied());
+        }
+        snap
+    }
+
+    /// Rebuild a `KvMemory` from a snapshot's buffers.
+    ///
+    /// Bitwise round-trip guarantee (pinned by
+    /// `snapshot_restore_roundtrip_is_bitwise`): for any memory `m`,
+    /// `KvMemory::restore(&m.snapshot())` produces identical decode
+    /// results — same live rows, same insertion order, same f64 bits
+    /// out of `attention_query` / `snapshot_alive` / `read_exact`.
+    ///
+    /// Owners and `written_at` are preserved, so owner-enforced
+    /// [`KvMemory::delete`] keeps working after a restore. The restored
+    /// memory starts with an **empty audit log**: audit history travels
+    /// with `save_parquet`/`load_parquet`, not with hot-path snapshots.
+    ///
+    /// Errors (typed, no panic): `DimensionMismatch` if a buffer length
+    /// does not equal `n_rows * d`, `InvalidArgument` if `owners` /
+    /// `written_at` are not parallel to `ids`, `DuplicateKey` if an id
+    /// appears twice (a well-formed snapshot never has duplicates).
+    pub fn restore(snap: &KvSnapshot) -> Result<Self> {
+        let n = snap.ids.len();
+        if snap.owners.len() != n {
+            return Err(BruceError::InvalidArgument(format!(
+                "snapshot owners length {} != ids length {n}",
+                snap.owners.len()
+            )));
+        }
+        if snap.written_at.len() != n {
+            return Err(BruceError::InvalidArgument(format!(
+                "snapshot written_at length {} != ids length {n}",
+                snap.written_at.len()
+            )));
+        }
+        if snap.keys.len() != n * snap.d_k {
+            return Err(BruceError::DimensionMismatch {
+                expected: n * snap.d_k,
+                got: snap.keys.len(),
+            });
+        }
+        if snap.values.len() != n * snap.d_v {
+            return Err(BruceError::DimensionMismatch {
+                expected: n * snap.d_v,
+                got: snap.values.len(),
+            });
+        }
+        let mut mem = Self::new(snap.d_k, snap.d_v);
+        mem.rows.reserve(n);
+        mem.insertion_order.reserve(n);
+        for i in 0..n {
+            let id = &snap.ids[i];
+            if mem.rows.contains_key(id) {
+                return Err(BruceError::DuplicateKey(id.clone()));
+            }
+            mem.insertion_order.push(id.clone());
+            mem.rows.insert(
+                id.clone(),
+                Row {
+                    k: Array1::from(snap.keys[i * snap.d_k..(i + 1) * snap.d_k].to_vec()),
+                    v: Array1::from(snap.values[i * snap.d_v..(i + 1) * snap.d_v].to_vec()),
+                    owner: snap.owners[i].clone(),
+                    written_at: snap.written_at[i],
+                    deleted: false,
+                },
+            );
+        }
+        Ok(mem)
     }
 
     /// Read the full audit log (append-only).
@@ -613,6 +848,252 @@ mod tests {
         assert_eq!(log[0].op, "insert");
         assert_eq!(log[1].op, "insert");
         assert_eq!(log[2].op, "delete");
+    }
+
+    // ---- bulk_insert / snapshot / restore (kv-snapshot track) ----
+
+    /// Deterministic little memory: 3 owners, n rows, delete a few.
+    fn seeded_memory(n: usize) -> KvMemory {
+        let mut m = KvMemory::new(4, 3);
+        for i in 0..n {
+            let k = Array1::from_iter((0..4).map(|j| ((i * 3 + j) as f64).sin()));
+            let v = Array1::from_iter((0..3).map(|j| ((i * 5 + j) as f64).cos()));
+            let owner = ["alice", "bob", "carol"][i % 3];
+            m.write(&format!("f{i}"), k.view(), v.view(), owner)
+                .unwrap();
+        }
+        m
+    }
+
+    #[test]
+    fn bulk_insert_matches_write_loop_bitwise() {
+        use crate::types::{Eps, Sim};
+        let n = 17;
+        let ids: Vec<String> = (0..n).map(|i| format!("f{i}")).collect();
+        let keys: Vec<f64> = (0..n * 2).map(|i| (i as f64).sin()).collect();
+        let vals: Vec<f64> = (0..n * 3).map(|i| (i as f64).cos()).collect();
+
+        let mut a = KvMemory::new(2, 3);
+        for i in 0..n {
+            a.write(
+                &ids[i],
+                ArrayView1::from(&keys[i * 2..(i + 1) * 2]),
+                ArrayView1::from(&vals[i * 3..(i + 1) * 3]),
+                "alice",
+            )
+            .unwrap();
+        }
+        let mut b = KvMemory::new(2, 3);
+        assert_eq!(b.bulk_insert(&ids, &keys, &vals, "alice").unwrap(), n);
+
+        assert_eq!(a.len_alive(), b.len_alive());
+        assert_eq!(a.audit_log().len(), b.audit_log().len());
+        for (ea, eb) in a.audit_log().iter().zip(b.audit_log()) {
+            assert_eq!(
+                (ea.op.as_str(), ea.fact_id.as_str()),
+                (eb.op.as_str(), eb.fact_id.as_str())
+            );
+        }
+        let x = array![0.3, -0.7];
+        let oa = a.attention_query(x.view(), Eps::ONE, Sim::Dot).unwrap();
+        let ob = b.attention_query(x.view(), Eps::ONE, Sim::Dot).unwrap();
+        for (p, q) in oa.iter().zip(ob.iter()) {
+            assert_eq!(
+                p.to_bits(),
+                q.to_bits(),
+                "bulk_insert not bitwise == write loop"
+            );
+        }
+    }
+
+    #[test]
+    fn bulk_insert_rejects_bad_buffer_lengths() {
+        let mut m = KvMemory::new(2, 2);
+        let ids = ["a".to_string(), "b".to_string()];
+        let err = m.bulk_insert(&ids, &[1.0; 3], &[1.0; 4], "o").unwrap_err();
+        assert!(matches!(
+            err,
+            BruceError::DimensionMismatch {
+                expected: 4,
+                got: 3
+            }
+        ));
+        let err = m.bulk_insert(&ids, &[1.0; 4], &[1.0; 5], "o").unwrap_err();
+        assert!(matches!(
+            err,
+            BruceError::DimensionMismatch {
+                expected: 4,
+                got: 5
+            }
+        ));
+        assert_eq!(m.len_total(), 0);
+        assert!(m.audit_log().is_empty());
+    }
+
+    #[test]
+    fn bulk_insert_owner_conflict_is_all_or_nothing() {
+        let mut m = KvMemory::new(1, 1);
+        m.write("owned", array![9.0].view(), array![9.0].view(), "alice")
+            .unwrap();
+        let before_log = m.audit_log().len();
+        // batch: one fresh id, then a clash with alice's row
+        let ids = ["fresh".to_string(), "owned".to_string()];
+        let err = m
+            .bulk_insert(&ids, &[1.0, 2.0], &[1.0, 2.0], "mallory")
+            .unwrap_err();
+        assert!(matches!(err, BruceError::PermissionDenied(_, _, _)));
+        // nothing applied: no "fresh" row, no audit growth, alice's row intact
+        assert_eq!(m.len_total(), 1);
+        assert_eq!(m.audit_log().len(), before_log);
+        assert_eq!(m.read_exact("owned").unwrap().0, &array![9.0]);
+    }
+
+    #[test]
+    fn bulk_insert_duplicate_ids_last_write_wins() {
+        let mut m = KvMemory::new(1, 1);
+        let ids = ["x".to_string(), "x".to_string()];
+        m.bulk_insert(&ids, &[1.0, 2.0], &[10.0, 20.0], "o")
+            .unwrap();
+        assert_eq!(m.len_total(), 1);
+        assert_eq!(m.read_exact("x").unwrap().1, &array![20.0]);
+        // audit parity with a sequential write loop: insert then update
+        assert_eq!(m.audit_log()[0].op, "insert");
+        assert_eq!(m.audit_log()[1].op, "update");
+    }
+
+    #[test]
+    fn bulk_insert_may_overwrite_tombstoned_row_of_other_owner() {
+        // mirror of write(): a deleted row may be re-claimed by anyone
+        let mut m = KvMemory::new(1, 1);
+        m.write("x", array![1.0].view(), array![1.0].view(), "alice")
+            .unwrap();
+        m.delete("x", "alice").unwrap();
+        m.bulk_insert(&["x".to_string()], &[2.0], &[2.0], "bob")
+            .unwrap();
+        assert_eq!(m.read_exact("x").unwrap().1, &array![2.0]);
+    }
+
+    #[test]
+    fn snapshot_skips_tombstones_and_keeps_order() {
+        let mut m = seeded_memory(9);
+        m.delete("f2", "carol").unwrap();
+        m.delete("f6", "alice").unwrap();
+        let snap = m.snapshot();
+        assert_eq!(snap.n_rows(), 7);
+        assert_eq!(snap.n_rows(), m.len_alive());
+        assert!(!snap.ids.contains(&"f2".to_string()));
+        assert!(!snap.ids.contains(&"f6".to_string()));
+        // insertion order preserved; buffers parallel to ids
+        assert_eq!(snap.ids[0], "f0");
+        assert_eq!(snap.keys.len(), 7 * 4);
+        assert_eq!(snap.values.len(), 7 * 3);
+        assert_eq!(snap.owners.len(), 7);
+        assert_eq!(snap.written_at.len(), 7);
+        // row f3 (index 2 after f2's removal) matches read_exact bitwise
+        let (k3, v3) = m.read_exact("f3").unwrap();
+        assert_eq!(&snap.keys[2 * 4..3 * 4], k3.as_slice().unwrap());
+        assert_eq!(&snap.values[2 * 3..3 * 3], v3.as_slice().unwrap());
+    }
+
+    #[test]
+    fn snapshot_restore_roundtrip_is_bitwise() {
+        use crate::types::{Eps, Sim};
+        let mut m = seeded_memory(23);
+        m.delete("f5", "carol").unwrap();
+        m.delete("f11", "carol").unwrap();
+        let m2 = KvMemory::restore(&m.snapshot()).unwrap();
+
+        assert_eq!(m2.len_alive(), m.len_alive());
+        assert_eq!(m2.len_total(), m.len_alive()); // tombstones dropped
+        assert!(m2.audit_log().is_empty()); // audit travels via parquet only
+
+        let x = array![0.1, -0.2, 0.3, 0.7];
+        for (eps, sim) in [
+            (Eps::ZERO, Sim::Dot),
+            (Eps::ONE, Sim::Dot),
+            (Eps::ONE, Sim::NegSquared),
+        ] {
+            let oa = m.attention_query(x.view(), eps, sim).unwrap();
+            let ob = m2.attention_query(x.view(), eps, sim).unwrap();
+            for (p, q) in oa.iter().zip(ob.iter()) {
+                assert_eq!(p.to_bits(), q.to_bits(), "decode not bitwise after restore");
+            }
+        }
+        let (ids_a, k_a, v_a) = m.snapshot_alive();
+        let (ids_b, k_b, v_b) = m2.snapshot_alive();
+        assert_eq!(ids_a, ids_b);
+        assert_eq!(k_a, k_b);
+        assert_eq!(v_a, v_b);
+    }
+
+    #[test]
+    fn restore_preserves_owner_enforced_delete() {
+        let mut m = seeded_memory(6);
+        let mut m2 = KvMemory::restore(&m.snapshot()).unwrap();
+        // f1 is bob's: mallory refused, bob succeeds — same as the original
+        let err = m2.delete("f1", "mallory").unwrap_err();
+        assert!(matches!(err, BruceError::PermissionDenied(_, _, _)));
+        m2.delete("f1", "bob").unwrap();
+        assert!(m2.read_exact("f1").is_none());
+        assert_eq!(m2.len_alive(), 5);
+        // written_at preserved bitwise
+        let snap = m.snapshot();
+        let snap2 = KvMemory::restore(&snap).unwrap().snapshot();
+        assert_eq!(snap.written_at, snap2.written_at);
+        assert_eq!(snap.owners, snap2.owners);
+        m.delete("f1", "bob").unwrap(); // original unaffected by m2's delete
+    }
+
+    #[test]
+    fn restore_rejects_malformed_snapshots() {
+        let m = seeded_memory(4);
+        let good = m.snapshot();
+
+        let mut bad = good.clone();
+        bad.keys.pop();
+        assert!(matches!(
+            KvMemory::restore(&bad).unwrap_err(),
+            BruceError::DimensionMismatch { .. }
+        ));
+
+        let mut bad = good.clone();
+        bad.values.push(0.0);
+        assert!(matches!(
+            KvMemory::restore(&bad).unwrap_err(),
+            BruceError::DimensionMismatch { .. }
+        ));
+
+        let mut bad = good.clone();
+        bad.owners.pop();
+        assert!(matches!(
+            KvMemory::restore(&bad).unwrap_err(),
+            BruceError::InvalidArgument(_)
+        ));
+
+        let mut bad = good.clone();
+        bad.written_at.push(0.0);
+        assert!(matches!(
+            KvMemory::restore(&bad).unwrap_err(),
+            BruceError::InvalidArgument(_)
+        ));
+
+        let mut bad = good.clone();
+        bad.ids[1] = bad.ids[0].clone();
+        assert!(matches!(
+            KvMemory::restore(&bad).unwrap_err(),
+            BruceError::DuplicateKey(_)
+        ));
+    }
+
+    #[test]
+    fn snapshot_restore_empty_memory() {
+        let m = KvMemory::new(3, 2);
+        let snap = m.snapshot();
+        assert_eq!(snap.n_rows(), 0);
+        let m2 = KvMemory::restore(&snap).unwrap();
+        assert_eq!(m2.len_total(), 0);
+        assert_eq!(m2.d_k(), 3);
+        assert_eq!(m2.d_v(), 2);
     }
 
     #[test]
