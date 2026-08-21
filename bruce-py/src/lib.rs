@@ -1696,15 +1696,21 @@ impl QuerySession {
             .tables
             .get_mut(table)
             .ok_or_else(|| PyValueError::new_err(format!("no table {table}")))?;
+        // Attaching a column changes what the statistics must describe,
+        // so they are invalidated on success: without a sketch for the
+        // new key column the planner can never certify an error budget
+        // and the cost model prices its scan at zero bytes.
         if let Ok(k64) = keys.extract::<PyReadonlyArray2<'_, f64>>() {
-            return t
-                .attach_key_f64(name, k64.as_array().to_owned())
-                .map_err(|e| PyValueError::new_err(e.to_string()));
+            t.attach_key_f64(name, k64.as_array().to_owned())
+                .map_err(|e| PyValueError::new_err(e.to_string()))?;
+            self.inner.invalidate_stats(table);
+            return Ok(());
         }
         if let Ok(k32) = keys.extract::<PyReadonlyArray2<'_, f32>>() {
-            return t
-                .attach_key_f32(name, k32.as_array().to_owned())
-                .map_err(|e| PyValueError::new_err(e.to_string()));
+            t.attach_key_f32(name, k32.as_array().to_owned())
+                .map_err(|e| PyValueError::new_err(e.to_string()))?;
+            self.inner.invalidate_stats(table);
+            return Ok(());
         }
         Err(PyValueError::new_err(
             "attach_key expects a 2-d numpy array of dtype float64 or float32",

@@ -408,3 +408,50 @@ fn selectivity_estimate_is_close_and_stats_refresh_after_writes() {
         fused.cost.rows
     );
 }
+
+#[test]
+fn attaching_a_key_column_refreshes_stats_so_contracts_can_be_certified() {
+    // Regression: attach_key mutates a table's columns outside
+    // register/insert/delete, so without invalidating statistics the
+    // new key column has no sketch. The planner then rules every
+    // contracted plan "no sketch to certify it" and the cost model
+    // prices the scan at zero key bytes -- the access path exists but
+    // is unreachable. Found while running the certified-planning
+    // experiment on real corpora.
+    use ndarray::Array2;
+    let n = 4000;
+    let (t, _, _, _) = synth_table(n);
+    let mut db = Database::new();
+    db.register("movies", t);
+
+    // a key column the statistics collected at register time never saw
+    let mut keys = Array2::<f64>::zeros((n, 4));
+    for i in 0..n {
+        keys[(i, 0)] = 1.0 - 2.0 * (i as f64) / (n as f64);
+    }
+    db.catalog
+        .tables
+        .get_mut("movies")
+        .unwrap()
+        .attach_key_f64("emb2", keys)
+        .unwrap();
+    db.invalidate_stats("movies");
+
+    let sql = "SELECT genre, SOFTAVG(rating, SIM(emb2, :q), 0.02, 0.05) \
+               FROM movies GROUP BY genre";
+    let (_, planned) = db.run(sql, &q4()).unwrap();
+    assert!(
+        !planned.candidates.iter().any(|c| matches!(
+            &c.verdict, Verdict::Inadmissible(r) if r.contains("no sketch"))),
+        "contract should be certifiable after stats refresh:\n{}",
+        planned.explain()
+    );
+    let fused = planned
+        .candidates
+        .iter()
+        .find(|c| matches!(c.plan, PhysicalPlan::FusedGroupScan { .. }))
+        .unwrap();
+    assert!(fused.cost.bytes > n as f64 * 4.0 * 8.0,
+            "cost model must price the attached key column, got {} bytes",
+            fused.cost.bytes);
+}

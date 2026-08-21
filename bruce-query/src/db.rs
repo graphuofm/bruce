@@ -154,6 +154,23 @@ impl Database {
         self.stale.remove(name);
     }
 
+    /// Mark a table's statistics stale so the next planned query
+    /// recollects them.
+    ///
+    /// Any path that mutates a table's COLUMNS outside `register` /
+    /// `insert_row` / `delete_where` must call this. In particular
+    /// attaching a key column after registration adds a column the
+    /// statistics know nothing about: with no `KeySketch` for it the
+    /// planner cannot certify an error budget, so a contracted plan is
+    /// permanently ruled "no sketch to certify it" and the cost model
+    /// prices the scan at zero key bytes. That was a real defect --
+    /// the access path existed but nothing could ever reach it.
+    pub fn invalidate_stats(&mut self, table: &str) {
+        if self.catalog.tables.contains_key(table) {
+            self.stale.insert(table.to_string());
+        }
+    }
+
     fn ensure_stats(&mut self, table: &str) {
         if self.stale.remove(table) {
             if let Some(t) = self.catalog.tables.get(table) {
