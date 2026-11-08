@@ -1,0 +1,217 @@
+{
+ "extension": "/home/jding/bruce/paper_icde/engines/duckdb/build/softavg.duckdb_extension",
+ "extension_sha256_16": "92c596f077c675f2",
+ "duckdb_version": "1.5.5",
+ "checks": [
+  {
+   "facet": "brand",
+   "eps": 0.001,
+   "groups": 5758251,
+   "max_rel_diff": 6.196593625786801e-16,
+   "seconds_smoke": 0.845
+  },
+  {
+   "facet": "brand",
+   "eps": 0.002,
+   "groups": 5758251,
+   "max_rel_diff": 9.655466701948268e-16,
+   "seconds_smoke": 0.874
+  },
+  {
+   "facet": "brand",
+   "eps": 0.005,
+   "groups": 5758251,
+   "max_rel_diff": 1.2692156058869875e-15,
+   "seconds_smoke": 1.004
+  },
+  {
+   "facet": "brand",
+   "eps": 0.01,
+   "groups": 5758251,
+   "max_rel_diff": 1.3515758436486053e-15,
+   "seconds_smoke": 1.183
+  },
+  {
+   "facet": "brand",
+   "eps": 0.02,
+   "groups": 5758251,
+   "max_rel_diff": 1.2650156095063265e-15,
+   "seconds_smoke": 1.118
+  },
+  {
+   "facet": "brand",
+   "eps": 0.03,
+   "groups": 5758251,
+   "max_rel_diff": 2.7067030135714035e-15,
+   "seconds_smoke": 0.972
+  },
+  {
+   "facet": "brand",
+   "eps": 0.05,
+   "groups": 5758251,
+   "max_rel_diff": 2.321089489428851e-15,
+   "seconds_smoke": 0.972
+  },
+  {
+   "facet": "brand",
+   "eps": 0.07,
+   "groups": 5758251,
+   "max_rel_diff": 1.1585914893971638e-15,
+   "seconds_smoke": 1.256
+  },
+  {
+   "facet": "brand",
+   "eps": 0.1,
+   "groups": 5758251,
+   "max_rel_diff": 1.1603046358284843e-15,
+   "seconds_smoke": 1.256
+  },
+  {
+   "facet": "brand",
+   "eps": 0.15,
+   "groups": 5758251,
+   "max_rel_diff": 1.0124413355674414e-15,
+   "seconds_smoke": 1.058
+  },
+  {
+   "facet": "brand",
+   "eps": 0.2,
+   "groups": 5758251,
+   "max_rel_diff": 1.1698123768116306e-15,
+   "seconds_smoke": 0.996
+  },
+  {
+   "facet": "brand",
+   "eps": 0.3,
+   "groups": 5758251,
+   "max_rel_diff": 9.747428850562515e-16,
+   "seconds_smoke": 1.162
+  },
+  {
+   "facet": "brand",
+   "eps": 0.5,
+   "groups": 5758251,
+   "max_rel_diff": 1.3619034247678008e-15,
+   "seconds_smoke": 1.01
+  },
+  {
+   "facet": "brand",
+   "eps": 1.0,
+   "groups": 5758251,
+   "max_rel_diff": 1.1604442038363968e-15,
+   "seconds_smoke": 0.988
+  },
+  {
+   "facet": "brand",
+   "eps": Infinity,
+   "groups": 5758251,
+   "max_rel_diff": 7.839902427085889e-16,
+   "seconds_smoke": 0.891
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.001,
+   "groups": 76888,
+   "max_rel_diff": 6.19456144972234e-16,
+   "seconds_smoke": 0.268
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.002,
+   "groups": 76888,
+   "max_rel_diff": 7.896373357621066e-16,
+   "seconds_smoke": 0.048
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.005,
+   "groups": 76888,
+   "max_rel_diff": 1.8168505131657732e-15,
+   "seconds_smoke": 0.045
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.01,
+   "groups": 76888,
+   "max_rel_diff": 3.028124563723526e-15,
+   "seconds_smoke": 0.04
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.02,
+   "groups": 76888,
+   "max_rel_diff": 3.1726781576268296e-15,
+   "seconds_smoke": 0.046
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.03,
+   "groups": 76888,
+   "max_rel_diff": 3.2308732638066623e-15,
+   "seconds_smoke": 0.046
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.05,
+   "groups": 76888,
+   "max_rel_diff": 2.6561497485513153e-15,
+   "seconds_smoke": 0.054
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.07,
+   "groups": 76888,
+   "max_rel_diff": 2.813877960979536e-15,
+   "seconds_smoke": 0.041
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.1,
+   "groups": 76888,
+   "max_rel_diff": 2.3159217149240205e-15,
+   "seconds_smoke": 0.042
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.15,
+   "groups": 76888,
+   "max_rel_diff": 2.7280351247872404e-15,
+   "seconds_smoke": 0.077
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.2,
+   "groups": 76888,
+   "max_rel_diff": 2.4356222826154536e-15,
+   "seconds_smoke": 0.039
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.3,
+   "groups": 76888,
+   "max_rel_diff": 2.0630169225463427e-15,
+   "seconds_smoke": 0.05
+  },
+  {
+   "facet": "main_category",
+   "eps": 0.5,
+   "groups": 76888,
+   "max_rel_diff": 2.3842937151388195e-15,
+   "seconds_smoke": 0.047
+  },
+  {
+   "facet": "main_category",
+   "eps": 1.0,
+   "groups": 76888,
+   "max_rel_diff": 2.2465102431269755e-15,
+   "seconds_smoke": 0.041
+  },
+  {
+   "facet": "main_category",
+   "eps": Infinity,
+   "groups": 76888,
+   "max_rel_diff": 1.8277242530480048e-15,
+   "seconds_smoke": 0.042
+  }
+ ]
+}

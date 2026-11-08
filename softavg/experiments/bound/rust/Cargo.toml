@@ -1,0 +1,17 @@
+[package]
+name = "bound-exp"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Slack, trade-off and ESS experiments for softagg-core's InvAcc error bound (paper_icde/experiments/bound)"
+
+[dependencies]
+softagg-core = { path = "../../../engines/core" }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+# standalone: not part of any parent workspace
+[workspace]

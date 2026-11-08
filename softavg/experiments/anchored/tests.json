@@ -1,0 +1,36 @@
+{
+ "at": "2026-11-06T17:47:35",
+ "postgres": {
+  "command": "cargo pgrx test pg17 (engines/postgres, after adding src/relf.rs)",
+  "passed": 56,
+  "failed": 0,
+  "note": "pgrx-managed cassert server; relf objects are outside the extension catalog, so the catalog/upgrade tests are unaffected"
+ },
+ "core": {
+  "command": "cargo test --release --offline (engines/core)",
+  "passed": 13,
+  "failed": 0
+ },
+ "relf_core": {
+  "command": "cargo test --release --offline (engines/relf_core)",
+  "passed": 3,
+  "failed": 0,
+  "tests": [
+   "band_matches_reference_any_order_and_merge",
+   "winband_matches_reference",
+   "ivmband_matches_reference_or_asks_rescan"
+  ]
+ },
+ "duckdb": {
+  "command": "cargo test --release --offline + pytest tests/ (engines/duckdb, rebuilt with build.sh)",
+  "rust_passed": 4,
+  "pytest_passed": 48,
+  "failed": 0
+ },
+ "sqlite": {
+  "command": "cargo test --release + python3 tests/test_sqlite.py (engines/sqlite)",
+  "rust_passed": 9,
+  "script_checks_passed": 69329,
+  "failed": 0
+ }
+}

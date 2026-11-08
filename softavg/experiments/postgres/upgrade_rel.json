@@ -1,0 +1,20 @@
+{
+ "server": "rel",
+ "stype_before": "double precision[]",
+ "extversion_after": "0.2.0",
+ "after": {
+  "stype": "internal",
+  "mtransfn": "softavg_msfunc",
+  "minvtransfn": "softavg_minvfunc",
+  "serialfn": "softavg_serialize"
+ },
+ "window_after_upgrade_rows": 20000,
+ "window_after_upgrade_inverses": 19990,
+ "view_bits_identical": true,
+ "mv_stored_identical": true,
+ "mv_refresh_bits_identical": true,
+ "n_groups": 7,
+ "catalog_objects": 33,
+ "catalog_diff": {},
+ "pass": true
+}

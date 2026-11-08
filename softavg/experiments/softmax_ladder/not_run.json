@@ -1,0 +1,26 @@
+{
+ "reason": "~/.pgrx (13 GB, including the release PostgreSQL 17.10 install ~/.pgrx/17.10/pg-release-install) was deleted by the 2026-11-06 19:10 disk cleanup (~/cleanup_1106.log). Rebuilding PostgreSQL 17.10 from the official source tarball (downloaded to the session scratchpad, sha256 078a03516dcdbdb705fecaf415ea3d13a956c589e46f09fed68a06fb00598c90 verified) was refused by the permission system (auto-mode classifier: 'Code from External'). Per the task rules nothing was worked around: every PostgreSQL engine cell is not run; the PG rows of the ladder are a replay of PostgreSQL's call order outside the server (replay.py), with no latency.",
+ "refused_command": "cd postgresql-17.10 && ./configure '--prefix=/home/jding/.pgrx/17.10/pg-release-install' '--with-pgport=28817' '--without-icu' '--without-readline' && nice -n 10 make -j16 && make install",
+ "not_run": [
+  "PostgreSQL 17.10 release server rebuild (configure flags copied from experiments/postgres/results.json servers.rel.env.pg_config_configure)",
+  "cargo pgrx init --pg17 ~/.pgrx/17.10/pg-release-install/bin/pg_config",
+  "cd engines/postgres && CARGO_TARGET_DIR=<ladder>/target/bruce_pg cargo pgrx install --release --pg-config ~/.pgrx/17.10/pg-release-install/bin/pg_config   (shipped bruce_pg 0.2.0, S4)",
+  "cd experiments/softmax_ladder/pg_ablation && CARGO_TARGET_DIR=../target/pg_ablation cargo pgrx install --release --pg-config ~/.pgrx/17.10/pg-release-install/bin/pg_config   (softavg_ablation: S3 moving aggregate + S2/S3 IVM arms; source written, never compiled)",
+  "initdb a scratch cluster (port 28850, settings of experiments/postgres/README.md 'Rerun'), createdb ladder",
+  "python pg_window.py 28850   (S0 naive, S1 global shift + clamp -700, S2 softavg_fwd, S3 softavg_s3, S4 softavg; same grid as SQLite; never executed)",
+  "python pg_maint.py 28850    (S2/S3/S4 maintenance arms with per-statement latency; never executed)",
+  "PG GROUP BY: nothing to add (in PG GROUP BY S2 = S4: the plain SFUNC is ScalarAcc; InvAcc is only used by MSFUNC/MINVFUNC and softavg_ivm)"
+ ],
+ "also_not_run": [
+  "SQLite S1x (exact SQL: frame max + correlated subquery, O(rows x k)) at k = 1000 on imdb_all and amazon (estimated 1.5-5 min per fetch); run for query 0 only at k = 10, 100 on all row sets and k = 1000 on imdb_ge",
+  "DuckDB: no new build (no inverse in its C API, so S3 cannot occur; S2 = S4 = segment tree); numbers cited from experiments/duckdb/results.json (IMDb predicate subset, 5 queries, ROWS 49 PRECEDING, partitioned by facet) - not the same row sets / k as the SQLite cells",
+  "SQLite maintenance (no IVM; triggers would be the analogue) - not part of this ladder"
+ ],
+ "status_2026_11_07": "SUPERSEDED for PostgreSQL: the PG engine cells were run on 2026-11-07 on PostgreSQL 18.6 (conda env /home/jding/miniforge3/envs/ggdb-pg, release build, used read-only; cluster paper_icde/pg18env; bruce_pg 0.2.0 and softavg_ablation built with cargo pgrx package --features pg18 and staged in pg18env/ext). results.json -> postgres_engine. The 'reason' / 'refused_command' / 'not_run' entries below describe the 2026-11-06 state (PG 17.10 gone, rebuild refused) and are kept as history; PostgreSQL 17.10 itself was never rebuilt.",
+ "postgres_still_not_run": [
+  "PostgreSQL 17.10: not rebuilt (the PG cells ran on 18.6 instead; no PG17 vs PG18 comparison of this ladder)",
+  "PG S1x (exact SQL, frame max + correlated subquery): not in pg_window.py (SQLite has it; O(rows x k))",
+  "PG GROUP BY: nothing to add (S2 = S4 there: the plain SFUNC is ScalarAcc)",
+  "bruce_pg test tests::pg_test_i_upgrade_path_alter_extension on PG 18.6: fails by environment (stages its probe in the compiled-in sharedir; PG 18 reads update scripts from the extension_control_path directory); the same probe by hand passes; the full suite must not be rerun as is (the failed test leaves its probe in the conda env)"
+ ]
+}

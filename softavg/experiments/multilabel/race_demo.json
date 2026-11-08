@@ -1,0 +1,38 @@
+{
+ "as_shipped": {
+  "base_first": {
+   "second_blocked": true,
+   "drama_n_view": 5782,
+   "drama_n_fresh": 5782,
+   "drama_softavg_view": 9.798923114589204,
+   "drama_softavg_fresh": 9.798923114589204,
+   "view_agrees": true
+  },
+  "bridge_first": {
+   "second_blocked": true,
+   "drama_n_view": 5783,
+   "drama_n_fresh": 5783,
+   "drama_softavg_view": 9.84883225398362,
+   "drama_softavg_fresh": 9.84883225398362,
+   "view_agrees": true
+  }
+ },
+ "locks_stripped": {
+  "base_first": {
+   "second_blocked": false,
+   "drama_n_view": 5781,
+   "drama_n_fresh": 5782,
+   "drama_softavg_view": 5.790791999211792,
+   "drama_softavg_fresh": 9.798923114589204,
+   "view_agrees": false
+  },
+  "bridge_first": {
+   "second_blocked": false,
+   "drama_n_view": 5781,
+   "drama_n_fresh": 5783,
+   "drama_softavg_view": 5.790791999211792,
+   "drama_softavg_fresh": 9.84883225398362,
+   "view_agrees": false
+  }
+ }
+}

@@ -1,0 +1,5 @@
+{
+ "result": "error",
+ "sqlstate": "42809",
+ "message": "ERROR:  \"jv\" is a view"
+}

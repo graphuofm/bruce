@@ -1,0 +1,30 @@
+accuracy 1/200 5s
+accuracy 21/200 116s
+accuracy 41/200 231s
+accuracy 61/200 396s
+accuracy 81/200 545s
+accuracy 101/200 647s
+accuracy 121/200 744s
+accuracy 141/200 842s
+accuracy 161/200 941s
+accuracy 181/200 1045s
+timing threads=1 query 1/10
+timing threads=1 query 2/10
+timing threads=1 query 3/10
+timing threads=1 query 4/10
+timing threads=1 query 5/10
+timing threads=1 query 6/10
+timing threads=1 query 7/10
+timing threads=1 query 8/10
+timing threads=1 query 9/10
+timing threads=1 query 10/10
+timing threads=8 query 1/10
+timing threads=8 query 2/10
+timing threads=8 query 3/10
+timing threads=8 query 4/10
+timing threads=8 query 5/10
+timing threads=8 query 6/10
+timing threads=8 query 7/10
+timing threads=8 query 8/10
+timing threads=8 query 9/10
+timing threads=8 query 10/10

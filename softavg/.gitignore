@@ -1,0 +1,49 @@
+# Rust / build outputs
+target/
+build/
+!/pg18env/build/
+/pg18env/build/*
+!/pg18env/build/env.sh
+!/pg18env/build/compat/
+*.so
+*.dylib
+*.o
+*.rlib
+*.duckdb_extension
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Data and databases (not redistributed; rebuilt by the harnesses)
+data/
+!/experiments/esci_task/data/
+/experiments/esci_task/data/*
+!/experiments/esci_task/data/*.json
+work/
+*.parquet
+*.npy
+*.npz
+*.db
+*.duckdb
+*.sqlite
+*.sqlite3
+*.tgz
+*.gz
+/experiments/sqlite/deps/
+
+# PostgreSQL 18.6 cluster and staged extensions
+/pg18env/data/
+/pg18env/ext/
+/pg18env/log/
+
+# Editors / OS
+*~
+*.swp
+.*.swp
+.DS_Store
+.env

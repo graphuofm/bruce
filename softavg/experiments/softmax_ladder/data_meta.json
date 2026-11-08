@@ -1,0 +1,57 @@
+{
+ "imdb": {
+  "rows": 459865,
+  "rows_ge2000": 232828,
+  "facets": 29,
+  "queries": [
+   {
+    "row": 256557,
+    "text": "Zanna bianca alla riscossa"
+   },
+   {
+    "row": 107447,
+    "text": "Aleska & Angelika: Pornochic 21"
+   },
+   {
+    "row": 258157,
+    "text": "Those Were Wonderful Days"
+   }
+  ],
+  "order": "id",
+  "score": "float32 inner product (numpy) of corpus emb.npy rows, stored as float64",
+  "s_max": [
+   1.0000001192092896,
+   1.0,
+   1.000000238418579
+  ]
+ },
+ "amazon": {
+  "rows": 1524113,
+  "rows_in_ts_file": 1524113,
+  "facets": 33,
+  "queries": [
+   {
+    "row": 1072155,
+    "text": "It\u2019s a great deal for a great price"
+   },
+   {
+    "row": 889096,
+    "text": "Too small for our dog"
+   },
+   {
+    "row": 650625,
+    "text": "Good for a first time crocheter; not the best quality but will get the job done"
+   }
+  ],
+  "order": "ts, id",
+  "ts_min": "1997-09-10 22:45:57",
+  "ts_max": "2023-09-06 19:54:16.684000",
+  "distinct_ts": 1522583,
+  "score": "float32 inner product (numpy) of corpus emb.npy rows, stored as float64",
+  "s_max": [
+   0.9999998807907104,
+   0.9999999403953552,
+   1.0
+  ]
+ }
+}

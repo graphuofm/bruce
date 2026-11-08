@@ -1,0 +1,12 @@
+{
+ "rows": 1524113,
+ "facets": 33,
+ "distinct_ts": 1522583,
+ "ts_min": "1997-09-10 22:45:57",
+ "ts_max": "2023-09-06 19:54:16.684",
+ "query_row": 1072155,
+ "query_text": "It\u2019s a great deal for a great price",
+ "s0_max": 0.9999999403953552,
+ "s0_min": -0.28857848048210144,
+ "score": "float32 inner product (numpy), stored as float8"
+}

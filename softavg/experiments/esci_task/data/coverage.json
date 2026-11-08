@@ -1,0 +1,311 @@
+{
+ "match_rule": "ESCI product_id (ASIN) == Amazon Reviews 2023 meta parent_asin",
+ "meta_source": "https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023/raw/meta_categories/meta_*.jsonl.gz (streamed, not stored)",
+ "meta_files": 34,
+ "meta_lines_scanned": 35393189,
+ "meta_uncompressed_gb_streamed": 101.4,
+ "esci_us_judgments": 1818825,
+ "esci_us_queries": 97345,
+ "esci_us_products": 1215851,
+ "products_matched": 447879,
+ "products_with_rating": 447878,
+ "products_with_price": 240156,
+ "frac_products_with_rating": 0.36836586061943444,
+ "frac_products_with_price": 0.19752091333559788,
+ "frac_judgments_with_rating": 0.3505840308990695,
+ "frac_judgments_with_price": 0.19826866246065455,
+ "frac_judgments_with_rating_by_label": {
+  "C": 0.42902444505480786,
+  "E": 0.3433676029491214,
+  "I": 0.3774559155060066,
+  "S": 0.35467476097510786
+ },
+ "queries_with_at_least_k_rated": {
+  "1": 91374,
+  "4": 67189,
+  "8": 34724,
+  "12": 13950,
+  "16": 4698
+ },
+ "queries_with_at_least_k_priced": {
+  "1": 72881,
+  "4": 39532,
+  "8": 14996,
+  "12": 5352,
+  "16": 1431
+ },
+ "per_meta_file": [
+  {
+   "category": "All_Beauty",
+   "lines": 112590,
+   "uncompressed_bytes": 212990142,
+   "matched": 1547,
+   "seconds": 33.4,
+   "returncode": 0
+  },
+  {
+   "category": "Amazon_Fashion",
+   "lines": 826108,
+   "uncompressed_bytes": 1422365805,
+   "matched": 2719,
+   "seconds": 174.6,
+   "returncode": 0
+  },
+  {
+   "category": "Appliances",
+   "lines": 94327,
+   "uncompressed_bytes": 285298475,
+   "matched": 1767,
+   "seconds": 61.6,
+   "returncode": 0
+  },
+  {
+   "category": "Arts_Crafts_and_Sewing",
+   "lines": 801446,
+   "uncompressed_bytes": 2170215242,
+   "matched": 13332,
+   "seconds": 611.0,
+   "returncode": 0
+  },
+  {
+   "category": "Automotive",
+   "lines": 2003129,
+   "uncompressed_bytes": 5345616548,
+   "matched": 20975,
+   "seconds": 1523.3,
+   "returncode": 0
+  },
+  {
+   "category": "Baby_Products",
+   "lines": 217724,
+   "uncompressed_bytes": 691003271,
+   "matched": 5752,
+   "seconds": 143.8,
+   "returncode": 0
+  },
+  {
+   "category": "Beauty_and_Personal_Care",
+   "lines": 1028914,
+   "uncompressed_bytes": 2835194976,
+   "matched": 23893,
+   "seconds": 854.9,
+   "returncode": 0
+  },
+  {
+   "category": "Books",
+   "lines": 4448181,
+   "uncompressed_bytes": 14697581022,
+   "matched": 37872,
+   "seconds": 2795.7,
+   "returncode": 0
+  },
+  {
+   "category": "CDs_and_Vinyl",
+   "lines": 701959,
+   "uncompressed_bytes": 948861684,
+   "matched": 2995,
+   "seconds": 236.7,
+   "returncode": 0
+  },
+  {
+   "category": "Cell_Phones_and_Accessories",
+   "lines": 1288490,
+   "uncompressed_bytes": 4015159840,
+   "matched": 11447,
+   "seconds": 1046.4,
+   "returncode": 0
+  },
+  {
+   "category": "Clothing_Shoes_and_Jewelry",
+   "lines": 7218481,
+   "uncompressed_bytes": 17960532903,
+   "matched": 35527,
+   "seconds": 2660.1,
+   "returncode": 0
+  },
+  {
+   "category": "Digital_Music",
+   "lines": 70537,
+   "uncompressed_bytes": 67097002,
+   "matched": 209,
+   "seconds": 11.5,
+   "returncode": 0
+  },
+  {
+   "category": "Electronics",
+   "lines": 1610012,
+   "uncompressed_bytes": 5246144134,
+   "matched": 30220,
+   "seconds": 1520.9,
+   "returncode": 0
+  },
+  {
+   "category": "Gift_Cards",
+   "lines": 1137,
+   "uncompressed_bytes": 2038189,
+   "matched": 59,
+   "seconds": 0.6,
+   "returncode": 0
+  },
+  {
+   "category": "Grocery_and_Gourmet_Food",
+   "lines": 603274,
+   "uncompressed_bytes": 1382105675,
+   "matched": 14238,
+   "seconds": 409.1,
+   "returncode": 0
+  },
+  {
+   "category": "Handmade_Products",
+   "lines": 164817,
+   "uncompressed_bytes": 399261431,
+   "matched": 1694,
+   "seconds": 126.9,
+   "returncode": 0
+  },
+  {
+   "category": "Health_and_Household",
+   "lines": 797563,
+   "uncompressed_bytes": 2468505069,
+   "matched": 24184,
+   "seconds": 854.6,
+   "returncode": 0
+  },
+  {
+   "category": "Health_and_Personal_Care",
+   "lines": 60293,
+   "uncompressed_bytes": 118005874,
+   "matched": 1021,
+   "seconds": 30.0,
+   "returncode": 0
+  },
+  {
+   "category": "Home_and_Kitchen",
+   "lines": 3735584,
+   "uncompressed_bytes": 11788767944,
+   "matched": 56155,
+   "seconds": 2203.3,
+   "returncode": 0
+  },
+  {
+   "category": "Industrial_and_Scientific",
+   "lines": 427564,
+   "uncompressed_bytes": 1130006344,
+   "matched": 6502,
+   "seconds": 371.1,
+   "returncode": 0
+  },
+  {
+   "category": "Kindle_Store",
+   "lines": 1591371,
+   "uncompressed_bytes": 6865237738,
+   "matched": 10901,
+   "seconds": 1771.1,
+   "returncode": 0
+  },
+  {
+   "category": "Magazine_Subscriptions",
+   "lines": 3391,
+   "uncompressed_bytes": 4096541,
+   "matched": 98,
+   "seconds": 1.6,
+   "returncode": 0
+  },
+  {
+   "category": "Movies_and_TV",
+   "lines": 748224,
+   "uncompressed_bytes": 1285744674,
+   "matched": 14974,
+   "seconds": 345.9,
+   "returncode": 0
+  },
+  {
+   "category": "Musical_Instruments",
+   "lines": 213593,
+   "uncompressed_bytes": 631877970,
+   "matched": 3932,
+   "seconds": 204.5,
+   "returncode": 0
+  },
+  {
+   "category": "Office_Products",
+   "lines": 710503,
+   "uncompressed_bytes": 2146468843,
+   "matched": 13630,
+   "seconds": 548.1,
+   "returncode": 0
+  },
+  {
+   "category": "Patio_Lawn_and_Garden",
+   "lines": 851907,
+   "uncompressed_bytes": 2714096874,
+   "matched": 14890,
+   "seconds": 701.2,
+   "returncode": 0
+  },
+  {
+   "category": "Pet_Supplies",
+   "lines": 492798,
+   "uncompressed_bytes": 1571293235,
+   "matched": 7431,
+   "seconds": 407.8,
+   "returncode": 0
+  },
+  {
+   "category": "Software",
+   "lines": 89251,
+   "uncompressed_bytes": 256220771,
+   "matched": 1442,
+   "seconds": 69.5,
+   "returncode": 0
+  },
+  {
+   "category": "Sports_and_Outdoors",
+   "lines": 1587421,
+   "uncompressed_bytes": 4132263769,
+   "matched": 23213,
+   "seconds": 764.7,
+   "returncode": 0
+  },
+  {
+   "category": "Subscription_Boxes",
+   "lines": 641,
+   "uncompressed_bytes": 1399864,
+   "matched": 9,
+   "seconds": 0.8,
+   "returncode": 0
+  },
+  {
+   "category": "Tools_and_Home_Improvement",
+   "lines": 1473810,
+   "uncompressed_bytes": 4850689793,
+   "matched": 26277,
+   "seconds": 697.0,
+   "returncode": 0
+  },
+  {
+   "category": "Toys_and_Games",
+   "lines": 890874,
+   "uncompressed_bytes": 2637909430,
+   "matched": 32720,
+   "seconds": 462.5,
+   "returncode": 0
+  },
+  {
+   "category": "Unknown",
+   "lines": 390006,
+   "uncompressed_bytes": 674824926,
+   "matched": 1807,
+   "seconds": 104.6,
+   "returncode": 0
+  },
+  {
+   "category": "Video_Games",
+   "lines": 137269,
+   "uncompressed_bytes": 437375785,
+   "matched": 4447,
+   "seconds": 83.9,
+   "returncode": 0
+  }
+ ]
+}

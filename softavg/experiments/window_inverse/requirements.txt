@@ -1,0 +1,15 @@
+# python3.10 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# PostgreSQL 17.10 is the release build in ~/.pgrx/17.10/pg-release-install (not pip); Spark needs a JRE (Java 8 used)
+numpy==2.2.6
+pandas==2.3.3
+pyarrow==25.0.1
+polars==2.0.0
+polars-runtime-32==2.0.0
+duckdb==1.5.6
+apsw==3.54.0.0
+chdb==4.4.0
+chdb-core==26.9.0
+datafusion==55.0.0
+pyspark==3.5.9
+psycopg2-binary==2.9.13
+PyMySQL==1.2.3

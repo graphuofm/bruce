@@ -1,0 +1,96 @@
+{
+ "note": "Prompt set for the LLM-written-SQL experiment. Fixed before any model output was collected (2026-11-06). Do not edit after collection starts; add a new version instead.",
+ "version": 1,
+ "prompts": [
+  {
+   "id": "T1_softmax_named__postgresql",
+   "task": "T1_softmax_named",
+   "engine": "postgresql",
+   "prompt": "PostgreSQL 17 with the pgvector extension. Table: reviews(id bigint primary key, category text, rating double precision, ts timestamptz, emb vector(384)). Embeddings are L2-normalised. The query embedding is passed as the parameter $1 (type vector(384)).\n\nFor each category, compute the average rating where each review is weighted by the softmax of its cosine similarity to the query embedding, with temperature 0.001.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T1_softmax_named__duckdb",
+   "task": "T1_softmax_named",
+   "engine": "duckdb",
+   "prompt": "DuckDB 1.5. Table: reviews(id BIGINT PRIMARY KEY, category VARCHAR, rating DOUBLE, ts TIMESTAMP, emb FLOAT[384]). Embeddings are L2-normalised. The query embedding is passed as the prepared-statement parameter $1 (type FLOAT[384]).\n\nFor each category, compute the average rating where each review is weighted by the softmax of its cosine similarity to the query embedding, with temperature 0.001.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T1_softmax_named__sqlite",
+   "task": "T1_softmax_named",
+   "engine": "sqlite",
+   "prompt": "SQLite 3.37 with the sqlite-vec extension loaded and math functions enabled. Table: reviews(id INTEGER PRIMARY KEY, category TEXT, rating REAL, ts TEXT (ISO-8601), emb BLOB (sqlite-vec float32 vector, 384 dims)). Embeddings are L2-normalised. The query embedding is passed as the parameter ?1 (a sqlite-vec float32 blob).\n\nFor each category, compute the average rating where each review is weighted by the softmax of its cosine similarity to the query embedding, with temperature 0.001.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T2_exp_weight__postgresql",
+   "task": "T2_exp_weight",
+   "engine": "postgresql",
+   "prompt": "PostgreSQL 17 with the pgvector extension. Table: reviews(id bigint primary key, category text, rating double precision, ts timestamptz, emb vector(384)). Embeddings are L2-normalised. The query embedding is passed as the parameter $1 (type vector(384)).\n\nFor each category, compute a weighted average rating where the weight of a review is exp(cosine_similarity / 0.001) and cosine_similarity is between the review embedding and the query embedding.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T2_exp_weight__duckdb",
+   "task": "T2_exp_weight",
+   "engine": "duckdb",
+   "prompt": "DuckDB 1.5. Table: reviews(id BIGINT PRIMARY KEY, category VARCHAR, rating DOUBLE, ts TIMESTAMP, emb FLOAT[384]). Embeddings are L2-normalised. The query embedding is passed as the prepared-statement parameter $1 (type FLOAT[384]).\n\nFor each category, compute a weighted average rating where the weight of a review is exp(cosine_similarity / 0.001) and cosine_similarity is between the review embedding and the query embedding.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T2_exp_weight__sqlite",
+   "task": "T2_exp_weight",
+   "engine": "sqlite",
+   "prompt": "SQLite 3.37 with the sqlite-vec extension loaded and math functions enabled. Table: reviews(id INTEGER PRIMARY KEY, category TEXT, rating REAL, ts TEXT (ISO-8601), emb BLOB (sqlite-vec float32 vector, 384 dims)). Embeddings are L2-normalised. The query embedding is passed as the parameter ?1 (a sqlite-vec float32 blob).\n\nFor each category, compute a weighted average rating where the weight of a review is exp(cosine_similarity / 0.001) and cosine_similarity is between the review embedding and the query embedding.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T3_plain_language__postgresql",
+   "task": "T3_plain_language",
+   "engine": "postgresql",
+   "prompt": "PostgreSQL 17 with the pgvector extension. Table: reviews(id bigint primary key, category text, rating double precision, ts timestamptz, emb vector(384)). Embeddings are L2-normalised. The query embedding is passed as the parameter $1 (type vector(384)).\n\nI want to know which categories have the best ratings among reviews that are relevant to my query. Weight each review by how similar it is to the query using a sharp softmax (temperature 0.0001), and give one weighted average rating per category.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T3_plain_language__duckdb",
+   "task": "T3_plain_language",
+   "engine": "duckdb",
+   "prompt": "DuckDB 1.5. Table: reviews(id BIGINT PRIMARY KEY, category VARCHAR, rating DOUBLE, ts TIMESTAMP, emb FLOAT[384]). Embeddings are L2-normalised. The query embedding is passed as the prepared-statement parameter $1 (type FLOAT[384]).\n\nI want to know which categories have the best ratings among reviews that are relevant to my query. Weight each review by how similar it is to the query using a sharp softmax (temperature 0.0001), and give one weighted average rating per category.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T3_plain_language__sqlite",
+   "task": "T3_plain_language",
+   "engine": "sqlite",
+   "prompt": "SQLite 3.37 with the sqlite-vec extension loaded and math functions enabled. Table: reviews(id INTEGER PRIMARY KEY, category TEXT, rating REAL, ts TEXT (ISO-8601), emb BLOB (sqlite-vec float32 vector, 384 dims)). Embeddings are L2-normalised. The query embedding is passed as the parameter ?1 (a sqlite-vec float32 blob).\n\nI want to know which categories have the best ratings among reviews that are relevant to my query. Weight each review by how similar it is to the query using a sharp softmax (temperature 0.0001), and give one weighted average rating per category.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T4_rolling_window__postgresql",
+   "task": "T4_rolling_window",
+   "engine": "postgresql",
+   "prompt": "PostgreSQL 17 with the pgvector extension. Table: reviews(id bigint primary key, category text, rating double precision, ts timestamptz, emb vector(384)). Embeddings are L2-normalised. The query embedding is passed as the parameter $1 (type vector(384)).\n\nFor each review, ordered by ts within its category, compute a rolling relevance-weighted average rating over that review and the 49 previous reviews of the same category. The weights are the softmax of cosine similarity to the query embedding with temperature 0.02.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T4_rolling_window__duckdb",
+   "task": "T4_rolling_window",
+   "engine": "duckdb",
+   "prompt": "DuckDB 1.5. Table: reviews(id BIGINT PRIMARY KEY, category VARCHAR, rating DOUBLE, ts TIMESTAMP, emb FLOAT[384]). Embeddings are L2-normalised. The query embedding is passed as the prepared-statement parameter $1 (type FLOAT[384]).\n\nFor each review, ordered by ts within its category, compute a rolling relevance-weighted average rating over that review and the 49 previous reviews of the same category. The weights are the softmax of cosine similarity to the query embedding with temperature 0.02.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T4_rolling_window__sqlite",
+   "task": "T4_rolling_window",
+   "engine": "sqlite",
+   "prompt": "SQLite 3.37 with the sqlite-vec extension loaded and math functions enabled. Table: reviews(id INTEGER PRIMARY KEY, category TEXT, rating REAL, ts TEXT (ISO-8601), emb BLOB (sqlite-vec float32 vector, 384 dims)). Embeddings are L2-normalised. The query embedding is passed as the parameter ?1 (a sqlite-vec float32 blob).\n\nFor each review, ordered by ts within its category, compute a rolling relevance-weighted average rating over that review and the 49 previous reviews of the same category. The weights are the softmax of cosine similarity to the query embedding with temperature 0.02.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T5_moderate_temp__postgresql",
+   "task": "T5_moderate_temp",
+   "engine": "postgresql",
+   "prompt": "PostgreSQL 17 with the pgvector extension. Table: reviews(id bigint primary key, category text, rating double precision, ts timestamptz, emb vector(384)). Embeddings are L2-normalised. The query embedding is passed as the parameter $1 (type vector(384)).\n\nFor each category, compute the average rating weighted by the softmax of cosine similarity to the query embedding at temperature 0.1.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T5_moderate_temp__duckdb",
+   "task": "T5_moderate_temp",
+   "engine": "duckdb",
+   "prompt": "DuckDB 1.5. Table: reviews(id BIGINT PRIMARY KEY, category VARCHAR, rating DOUBLE, ts TIMESTAMP, emb FLOAT[384]). Embeddings are L2-normalised. The query embedding is passed as the prepared-statement parameter $1 (type FLOAT[384]).\n\nFor each category, compute the average rating weighted by the softmax of cosine similarity to the query embedding at temperature 0.1.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  },
+  {
+   "id": "T5_moderate_temp__sqlite",
+   "task": "T5_moderate_temp",
+   "engine": "sqlite",
+   "prompt": "SQLite 3.37 with the sqlite-vec extension loaded and math functions enabled. Table: reviews(id INTEGER PRIMARY KEY, category TEXT, rating REAL, ts TEXT (ISO-8601), emb BLOB (sqlite-vec float32 vector, 384 dims)). Embeddings are L2-normalised. The query embedding is passed as the parameter ?1 (a sqlite-vec float32 blob).\n\nFor each category, compute the average rating weighted by the softmax of cosine similarity to the query embedding at temperature 0.1.\n\nWrite a single SQL query for this database that I can run as is. Reply with the SQL only, in one ```sql code block."
+  }
+ ]
+}

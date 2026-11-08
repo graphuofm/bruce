@@ -1,0 +1,34 @@
+[package]
+name = "softavg"
+version = "0.1.0"
+edition = "2021"
+description = "softavg(value, score, eps) as a DuckDB loadable extension (C extension API, pure Rust) over softagg-core"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# The shared soft-average state (ScalarAcc absorb/merge/finalize); every
+# paper_icde engine links this one crate.
+softagg-core = { path = "../core" }
+# relF baseline states (experiments/anchored); not part of the softavg path
+relf-core = { path = "../relf_core" }
+# DuckDB 1.5.6 C API bindings. `loadable-extension` resolves every duckdb_* call
+# through the duckdb_ext_api_v1 function-pointer struct handed over at LOAD time,
+# so nothing links against libduckdb at build time.
+libduckdb-sys = { version = "=1.10506.0", default-features = false, features = ["loadable-extension"] }
+
+[features]
+# extra cost-attribution aggregates (softavg_diag_*); never in the shipped build
+diag = []
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+debug = false
+
+# standalone: not part of any parent workspace
+[workspace]

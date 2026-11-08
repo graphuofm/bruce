@@ -1,0 +1,11 @@
+[package]
+name = "exp_bench"
+version = "0.1.0"
+edition = "2021"
+description = "Cost of f64::exp (glibc) by argument range: why sharp eps is slow"
+
+[profile.release]
+opt-level = 3
+
+# standalone: not part of any parent workspace
+[workspace]

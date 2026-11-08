@@ -18,6 +18,14 @@ Bruce ships the algebra in Rust (the `bruce-core` crate), a Python
 package with NumPy / PyTorch bindings (`pip install bruce`), a
 `bruce` CLI binary, and a `bruce-server` HTTP service.
 
+## softavg: the operator inside PostgreSQL, DuckDB and SQLite
+
+[`softavg/`](softavg/) is the continuation of Bruce as a database operator: a certified,
+removable softmax-weighted average, `softavg(value, score, eps)`, implemented by one Rust core
+in PostgreSQL, DuckDB and SQLite, with trigger-based maintenance in PostgreSQL. It is the
+artifact of the paper *Softmax Weighted Aggregation over Vector Search in Relational Databases*
+(Jiacheng Ding, Xiaofei Zhang). See [`softavg/README.md`](softavg/README.md).
+
 ## Why
 
 Relational databases and Transformer attention have evolved as two

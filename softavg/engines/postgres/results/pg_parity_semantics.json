@@ -1,0 +1,69 @@
+{
+  "track": "pg-parity",
+  "date": "2026-08-03",
+  "crate": "bruce-pg",
+  "version_before": "0.1.1",
+  "version_after": "0.1.2",
+  "host": {
+    "rustc": "1.95.0 (59807616e 2026-04-14)",
+    "cargo_pgrx": "0.18.1",
+    "pgrx": "0.18.1",
+    "postgres": ["16.14", "17.10"],
+    "loadavg_at_timing_runs": "9.61 7.12 5.26",
+    "loadavg_note": "Machine shared with other night-six tracks; these wall times are correctness-suite runtimes, NOT a performance claim of this track. No optimization was measured here.",
+    "build_env": {
+      "LIBCLANG_PATH": "$HOME/.local/lib/python3.10/site-packages/clang/native",
+      "BINDGEN_EXTRA_CLANG_ARGS": "-isystem /usr/lib/gcc/x86_64-linux-gnu/12/include",
+      "PATH_prefix": "$HOME/miniforge3/bin"
+    }
+  },
+
+  "suite": {
+    "command": "cargo pgrx test pg17 && cargo pgrx test pg16",
+    "pg17": {
+      "passed": 39, "failed": 0, "ignored": 0,
+      "wall_seconds_runs": [5.03, 4.10, 4.03, 3.13, 3.23],
+      "wall_seconds_median_of_5": 4.03
+    },
+    "pg16": {
+      "passed": 39, "failed": 0, "ignored": 0,
+      "wall_seconds_runs": [3.07, 3.06, 2.97, 2.92, 2.97],
+      "wall_seconds_median_of_5": 2.97
+    },
+    "breakdown": {"pg_test_in_database": 30, "pure_rust_cross_check": 9},
+    "before_this_track": {"total": 21, "pg_test_in_database": 18, "pure_rust_cross_check": 3},
+    "clippy_tests_pg_test_warnings": 0,
+    "cargo_fmt_check": "clean"
+  },
+
+  "semantics_change": {
+    "note": "Observable aggregate results. 'v0_1_1' is produced by replaying the shipped 0.1.1 ScalarAcc recurrences verbatim (reproducer: bruce-pg/results/old_scalaracc_0_1_1.rs, rustc -O). 'v0_1_2' is the pinned policy, asserted in-database by the test named on each row. null == SQL NULL.",
+    "cases": [
+      {"rows": "[(s=1,v=10),(s=+Inf,v=55),(s=2,v=20)]", "eps": 0.37, "v0_1_1": "NaN", "v0_1_2": 55.0, "test": "test_j_pos_inf_score_collapses_to_argmax"},
+      {"rows": "[(s=1,v=10),(s=+Inf,v=55),(s=2,v=20)]", "eps": 1.0, "v0_1_1": "NaN", "v0_1_2": 55.0, "test": "test_j_pos_inf_score_collapses_to_argmax"},
+      {"rows": "[(s=+Inf,v=50),(s=3,v=999),(s=+Inf,v=60)]", "eps": 0.37, "v0_1_1": "NaN", "v0_1_2": 55.0, "test": "test_j_pos_inf_score_collapses_to_argmax"},
+      {"rows": "[(s=+Inf,v=50),(s=3,v=999),(s=+Inf,v=60)]", "eps": 1.0, "v0_1_1": "NaN", "v0_1_2": 55.0, "test": "test_j_pos_inf_score_collapses_to_argmax"},
+      {"rows": "[(s=-Inf,v=888),(s=1,v=10)]", "eps": 0.37, "v0_1_1": 10.0, "v0_1_2": 10.0, "test": "test_j_neg_inf_is_weight_zero_and_all_neg_inf_is_null"},
+      {"rows": "[(s=-Inf,v=888),(s=1,v=10)]", "eps": 0.0, "v0_1_1": 10.0, "v0_1_2": 10.0, "test": "test_j_neg_inf_is_weight_zero_and_all_neg_inf_is_null"},
+      {"rows": "[(s=-Inf,v=888),(s=-Inf,v=999)]", "eps": 0.37, "v0_1_1": "NaN", "v0_1_2": null, "test": "test_j_neg_inf_is_weight_zero_and_all_neg_inf_is_null"},
+      {"rows": "[(s=-Inf,v=888),(s=-Inf,v=999)]", "eps": 1.0, "v0_1_1": "NaN", "v0_1_2": null, "test": "test_j_neg_inf_is_weight_zero_and_all_neg_inf_is_null"},
+      {"rows": "[(s=-Inf,v=888),(s=-Inf,v=999)]", "eps": 0.0, "v0_1_1": 943.5, "v0_1_2": null, "test": "test_j_neg_inf_is_weight_zero_and_all_neg_inf_is_null"},
+      {"rows": "[(s=1,v=10),(s=NaN,v=777),(s=2,v=20)]", "eps": 0.0, "v0_1_1": 20.0, "v0_1_2": "NaN", "test": "test_j_nan_score_propagates_in_every_regime"},
+      {"rows": "[(s=1,v=10),(s=NaN,v=777),(s=2,v=20)]", "eps": 0.37, "v0_1_1": "NaN", "v0_1_2": "NaN", "test": "test_j_nan_score_propagates_in_every_regime"},
+      {"rows": "[(s=1,v=10),(s=0.9,v=NaN),(s=2,v=20)]", "eps": 0.0, "v0_1_1": 20.0, "v0_1_2": "NaN", "test": "test_j_nan_value_propagates"},
+      {"rows": "[(s=1,v=10),(s=0.9,v=NaN),(s=2,v=20)]", "eps": "inf", "v0_1_1": "NaN", "v0_1_2": "NaN", "test": "test_j_nan_value_propagates"}
+    ],
+    "interpretation": "0.1.1 had no +/-Inf branches and no NaN policy at all; both behaviours were emergent. Note the eps=0 NaN rows: a NaN score/value silently VANISHED there (both `s > mu` and `s == mu` are false for NaN) while the same row poisoned the accumulator at finite eps. 0.1.2 replaced an undefined behaviour, it did not choose between two working ones."
+  },
+
+  "policy_decision": {
+    "nan": "PROPAGATE (option b) — diverges from bruce-core's SKIP, deliberately; argued in bruce-pg/README.md 'Special float values'",
+    "pm_inf": "MIRROR bruce-core's RowAcc verbatim (policy lives inside the monoid there, no PG-convention conflict)",
+    "state_layout": "float8[5] = [mu, z, u, eps, nan_seen] (was float8[4])",
+    "pg_reference_behaviour_confirmed_in_database": {
+      "avg_over_column_containing_nan_is_nan": true,
+      "nan_equals_nan_is_true_so_neq_filters_nan": true,
+      "core_pg_has_no_isnan_function": true
+    }
+  }
+}

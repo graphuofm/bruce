@@ -1,0 +1,28 @@
+--- a/src/acc.rs	2026-11-05 16:21:07.280432552 -0600
++++ b/src/acc.rs	2026-11-05 16:30:37.302860152 -0600
+@@ -99,12 +99,19 @@
+             self.u = v;
+             return;
+         }
+-        let mu2 = self.mu.max(s);
+-        let scale = ((self.mu - mu2) / eps).exp();
+-        let w = ((s - mu2) / eps).exp();
+-        self.u = self.u * scale + w * v;
+-        self.z = self.z * scale + w;
+-        self.mu = mu2;
++        // One exp per row. Bit-identical to the two-exp form
++        // (`scale`, `w` with mu2 = max(mu, s)) because exp(0) == 1 exactly
++        // and x * 1.0 == x, 1.0 * v == v in IEEE 754.
++        if s <= self.mu {
++            let w = ((s - self.mu) / eps).exp();
++            self.u += w * v;
++            self.z += w;
++        } else {
++            let scale = ((self.mu - s) / eps).exp();
++            self.u = self.u * scale + v;
++            self.z = self.z * scale + 1.0;
++            self.mu = s;
++        }
+     }
+ 
+     /// Merge another accumulator — the partition-reduce identity:

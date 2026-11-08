@@ -1,0 +1,23 @@
+{
+ "server": "rel",
+ "n_precomputed_queries": 3,
+ "pgvector_and_pg_ivm": true,
+ "copy_s": 1.940640239045024,
+ "ctas_s": 2.642801348119974,
+ "vacuum_analyze_s": 0.15975490305572748,
+ "hnsw_build_s": 32.99870029883459,
+ "hnsw": {
+  "opclass": "vector_ip_ops",
+  "m": 16,
+  "ef_construction": 64
+ },
+ "rows": 459865,
+ "n_facets": 29,
+ "rows_ge2000": 232828,
+ "n_facets_ge2000": 28,
+ "total_bytes": 1602592768,
+ "heap_bytes": 753442816,
+ "s0_min": -0.1961762011051178,
+ "s0_max": 0.9999999403953552,
+ "hnsw_bytes": 835330048
+}

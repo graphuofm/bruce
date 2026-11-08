@@ -1,0 +1,5534 @@
+{
+ "experiment": "window_inverse: floating-point sliding-window SUM maintained by subtraction",
+ "data": {
+  "corpus": "IMDb (/data/softavg/corpora/imdb, read-only)",
+  "n": 459865,
+  "qidx": [
+   256557,
+   107447,
+   258157
+  ],
+  "qtext": [
+   "Zanna bianca alla riscossa",
+   "Aleska & Angelika: Pornochic 21",
+   "Those Were Wonderful Days"
+  ],
+  "n_categories": 29,
+  "max_s": [
+   1.0,
+   0.9999999999999998,
+   1.0
+  ],
+  "score": "float64 cosine(emb, emb[qidx]) precomputed as column s<q>; queries are table rows, so max s = 1"
+ },
+ "grid": {
+  "eps": [
+   0.001,
+   0.02,
+   0.1
+  ],
+  "frames": [
+   50,
+   1000
+  ],
+  "queries": 3,
+  "tol_rel": 1e-06
+ },
+ "references": "numpy float64, per frame from scratch; F = the SQL's own formula exp((s-1)/eps), T = per-frame max-shifted softmax",
+ "engines": {
+  "clickhouse": {
+   "engine": "clickhouse",
+   "version": {
+    "engine": "ClickHouse (chdb, embedded)",
+    "version": "26.9.2.1",
+    "chdb": "4.4.0"
+   },
+   "cells": {
+    "q0_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.25
+    },
+    "q0_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 1.22
+    },
+    "q0_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.11
+    },
+    "q0_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.12
+    },
+    "q0_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.07
+    },
+    "q0_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.18
+    },
+    "q1_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.2
+    },
+    "q1_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.63
+    },
+    "q1_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.11
+    },
+    "q1_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.18
+    },
+    "q1_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.08
+    },
+    "q1_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.13
+    },
+    "q2_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.18
+    },
+    "q2_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.77
+    },
+    "q2_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.11
+    },
+    "q2_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q2_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.09
+    },
+    "q2_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.18
+    }
+   },
+   "sql": {
+    "q0_eps0.001_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id"
+   },
+   "minimal": {
+    "one_large": [
+     1.0,
+     2.0,
+     1e+20,
+     1e+20,
+     1e+20,
+     3.0,
+     3.0
+    ],
+    "two_large": [
+     1.0,
+     1e+40,
+     1e+40,
+     1e+40,
+     1e+20,
+     3.0,
+     3.0
+    ]
+   },
+   "graded": {
+    "q0_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 2487,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1460303414754201e-15,
+     "max_abs_err_vs_formula": 7.105427357601002e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 4452,
+     "max_rel_err_vs_true": 0.1654006116178461,
+     "class": "correct"
+    },
+    "q0_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 251,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.59968645491778e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 286,
+     "max_rel_err_vs_true": 0.0023529411764785547,
+     "class": "correct"
+    },
+    "q0_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.4750631447989767e-15,
+     "max_abs_err_vs_formula": 1.0658141036401503e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.123732382859952e-15,
+     "class": "correct"
+    },
+    "q0_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 3.754600561982343e-15,
+     "max_abs_err_vs_formula": 2.3092638912203256e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 4.187823483278373e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.2571446867169553e-15,
+     "max_abs_err_vs_formula": 7.993605777301127e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.1247836454827589e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.881633303245394e-15,
+     "max_abs_err_vs_formula": 1.5987211554602254e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.722386907401029e-15,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 22403,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1491331196329957e-15,
+     "max_abs_err_vs_formula": 7.105427357601002e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 36696,
+     "max_rel_err_vs_true": 0.33324183433121335,
+     "class": "correct"
+    },
+    "q1_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 389,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.60576450651933e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 458,
+     "max_rel_err_vs_true": 0.00017792340981236733,
+     "class": "correct"
+    },
+    "q1_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.4148823179499893e-15,
+     "max_abs_err_vs_formula": 1.0658141036401503e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.8944156875398125e-15,
+     "class": "correct"
+    },
+    "q1_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 3.816626306348954e-15,
+     "max_abs_err_vs_formula": 2.5757174171303632e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.816626316850786e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1720833606614933e-15,
+     "max_abs_err_vs_formula": 7.993605777301127e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.1535576590630894e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.902344977258407e-15,
+     "max_abs_err_vs_formula": 1.865174681370263e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.900257759869908e-15,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 89842,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.9067731557136915e-15,
+     "max_abs_err_vs_formula": 1.5987211554602254e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 116298,
+     "max_rel_err_vs_true": 0.4677940009217499,
+     "class": "correct"
+    },
+    "q2_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 871,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.01569899850654e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 1545,
+     "max_rel_err_vs_true": 0.0033160533198137382,
+     "class": "correct"
+    },
+    "q2_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.476675922987137e-15,
+     "max_abs_err_vs_formula": 1.0658141036401503e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.1848369895905177e-15,
+     "class": "correct"
+    },
+    "q2_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.0848839258636725e-15,
+     "max_abs_err_vs_formula": 3.552713678800501e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.084984001693722e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.243006327524132e-15,
+     "max_abs_err_vs_formula": 8.881784197001252e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.149515615116602e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 4.6511560832854e-15,
+     "max_abs_err_vs_formula": 2.7533531010703882e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 4.502802807750376e-15,
+     "class": "correct"
+    }
+   },
+   "minimal_graded": {
+    "one_large": {
+     "exact": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    },
+    "two_large": {
+     "exact": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    }
+   }
+  },
+  "datafusion": {
+   "engine": "datafusion",
+   "version": {
+    "engine": "Apache DataFusion (Python bindings)",
+    "version": "55.0.0"
+   },
+   "cells": {
+    "q0_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.28
+    },
+    "q0_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.3
+    },
+    "q0_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.22
+    },
+    "q0_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.21
+    },
+    "q0_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.2
+    },
+    "q0_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.2
+    },
+    "q1_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.27
+    },
+    "q1_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.27
+    },
+    "q1_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.21
+    },
+    "q1_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.2
+    },
+    "q1_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.22
+    },
+    "q1_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.23
+    },
+    "q2_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.29
+    },
+    "q2_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.23
+    },
+    "q2_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.23
+    },
+    "q2_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.23
+    },
+    "q2_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.22
+    },
+    "q2_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.23
+    }
+   },
+   "sql": {
+    "q0_eps0.001_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id"
+   },
+   "minimal": {
+    "one_large": [
+     1.0,
+     2.0,
+     1e+20,
+     1e+20,
+     1e+20,
+     0.0,
+     0.0
+    ],
+    "two_large": [
+     1.0,
+     1e+40,
+     1e+40,
+     1e+40,
+     0.0,
+     -1e+20,
+     -1e+20
+    ]
+   },
+   "graded": {
+    "q0_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 2487,
+     "finite_where_formula_undefined": 2117,
+     "host_nan_rows": 2840,
+     "host_wrong_rows": 346789,
+     "max_rel_err_vs_formula": 4.983644737905366e+107,
+     "max_abs_err_vs_formula": 6.478738159376092e+107,
+     "out_of_range_rows": 82234,
+     "worst": {
+      "id": 104057,
+      "value": 6.478738159376092e+107,
+      "formula_ref": 1.3000000000198881,
+      "true_ref": 1.3000000000198884
+     },
+     "user_wrong_rows": 352155,
+     "max_rel_err_vs_true": 4.9836447379053654e+107,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 251,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 146,
+     "host_wrong_rows": 262204,
+     "max_rel_err_vs_formula": 6.477589747529817e+89,
+     "max_abs_err_vs_formula": 4.404755168509295e+90,
+     "out_of_range_rows": 73737,
+     "worst": {
+      "id": 172643,
+      "value": 4.404755168509295e+90,
+      "formula_ref": 6.799990953717032,
+      "true_ref": 6.799990953717032
+     },
+     "user_wrong_rows": 262636,
+     "max_rel_err_vs_true": 6.477589747529817e+89,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 6661,
+     "max_rel_err_vs_formula": 1.6061852163826495,
+     "max_abs_err_vs_formula": 10.07050980039066,
+     "out_of_range_rows": 9,
+     "worst": {
+      "id": 284643,
+      "value": 16.340340762395673,
+      "formula_ref": 6.269830962005014,
+      "true_ref": 6.269830962005013
+     },
+     "user_wrong_rows": 6661,
+     "max_rel_err_vs_true": 1.6061852163826498,
+     "class": "wrong-finite"
+    },
+    "q0_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 1903,
+     "max_rel_err_vs_formula": 6.561035534738845e-06,
+     "max_abs_err_vs_formula": 3.6959455924190365e-05,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 267111,
+      "value": 5.633211132724824,
+      "formula_ref": 5.6331741732689,
+      "true_ref": 5.633174173268901
+     },
+     "user_wrong_rows": 1903,
+     "max_rel_err_vs_true": 6.561035534581174e-06,
+     "class": "wrong-finite"
+    },
+    "q0_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.759997013563412e-14,
+     "max_abs_err_vs_formula": 5.231370892033738e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.791116008282996e-14,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.5946759871838155e-14,
+     "max_abs_err_vs_formula": 3.7925218521195347e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.5959866856151896e-14,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 22403,
+     "finite_where_formula_undefined": 20312,
+     "host_nan_rows": 5762,
+     "host_wrong_rows": 318316,
+     "max_rel_err_vs_formula": 1.286194976314704e+81,
+     "max_abs_err_vs_formula": 7.588550360256754e+81,
+     "out_of_range_rows": 130236,
+     "worst": {
+      "id": 397644,
+      "value": -7.588550360256754e+81,
+      "formula_ref": 5.9,
+      "true_ref": 5.900000000000001
+     },
+     "user_wrong_rows": 346730,
+     "max_rel_err_vs_true": 1.2861949763147038e+81,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 389,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 270,
+     "host_wrong_rows": 286735,
+     "max_rel_err_vs_formula": 1.4315680620188973e+81,
+     "max_abs_err_vs_formula": 7.588550360256754e+81,
+     "out_of_range_rows": 80552,
+     "worst": {
+      "id": 387000,
+      "value": 7.588550360256754e+81,
+      "formula_ref": 5.300865925686307,
+      "true_ref": 5.300865925686309
+     },
+     "user_wrong_rows": 287463,
+     "max_rel_err_vs_true": 1.4315680620188966e+81,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 7662,
+     "max_rel_err_vs_formula": 0.5706878956457753,
+     "max_abs_err_vs_formula": 3.4147469993633077,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 181573,
+      "value": 9.398310038665675,
+      "formula_ref": 5.983563039302368,
+      "true_ref": 5.983563039302364
+     },
+     "user_wrong_rows": 7662,
+     "max_rel_err_vs_true": 0.5706878956457763,
+     "class": "wrong-finite"
+    },
+    "q1_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 5233,
+     "max_rel_err_vs_formula": 4.771271578451068e-05,
+     "max_abs_err_vs_formula": 0.00030537440539291083,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 198449,
+      "value": 6.400578349268137,
+      "formula_ref": 6.4002729748627445,
+      "true_ref": 6.400272974862743
+     },
+     "user_wrong_rows": 5233,
+     "max_rel_err_vs_true": 4.7712715784788246e-05,
+     "class": "wrong-finite"
+    },
+    "q1_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.2005129077478923e-13,
+     "max_abs_err_vs_formula": 6.865619184281968e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.202065964549636e-13,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.1346523133039023e-14,
+     "max_abs_err_vs_formula": 3.4372504842394846e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.1346523133039023e-14,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 89842,
+     "finite_where_formula_undefined": 69984,
+     "host_nan_rows": 12136,
+     "host_wrong_rows": 210093,
+     "max_rel_err_vs_formula": 2.7606985387162255e+70,
+     "max_abs_err_vs_formula": 8.282095616148677e+70,
+     "out_of_range_rows": 46001,
+     "worst": {
+      "id": 137921,
+      "value": -8.282095616148677e+70,
+      "formula_ref": 3.0,
+      "true_ref": 3.2000000038718572
+     },
+     "user_wrong_rows": 314781,
+     "max_rel_err_vs_true": 2.5881548769149095e+70,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 871,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 997,
+     "host_wrong_rows": 250076,
+     "max_rel_err_vs_formula": 10367132.016924232,
+     "max_abs_err_vs_formula": 77753489.96698388,
+     "out_of_range_rows": 21812,
+     "worst": {
+      "id": 216135,
+      "value": 77753497.46698387,
+      "formula_ref": 7.499999984571639,
+      "true_ref": 7.49999998457164
+     },
+     "user_wrong_rows": 252618,
+     "max_rel_err_vs_true": 10367132.01692423,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 104968,
+     "max_rel_err_vs_formula": 803.3648195685083,
+     "max_abs_err_vs_formula": 6202.755105872499,
+     "out_of_range_rows": 491,
+     "worst": {
+      "id": 269582,
+      "value": -6195.03413657588,
+      "formula_ref": 7.720969296619229,
+      "true_ref": 7.720969296619226
+     },
+     "user_wrong_rows": 104968,
+     "max_rel_err_vs_true": 803.3648195685086,
+     "class": "wrong-finite"
+    },
+    "q2_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 5207,
+     "max_rel_err_vs_formula": 0.0058593737385314185,
+     "max_abs_err_vs_formula": 0.03433828629008495,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 278269,
+      "value": 5.826063835574125,
+      "formula_ref": 5.86040212186421,
+      "true_ref": 5.86040212186421
+     },
+     "user_wrong_rows": 5207,
+     "max_rel_err_vs_true": 0.0058593737385314185,
+     "class": "wrong-finite"
+    },
+    "q2_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.3443939435653325e-13,
+     "max_abs_err_vs_formula": 6.634692795159935e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.3425370458532252e-13,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.828907095916029e-14,
+     "max_abs_err_vs_formula": 3.1086244689504383e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.828907095916029e-14,
+     "class": "correct"
+    }
+   },
+   "minimal_graded": {
+    "one_large": {
+     "exact": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       0.0,
+       0.0
+      ],
+      "ok": false
+     }
+    },
+    "two_large": {
+     "exact": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       0.0,
+       -1e+20,
+       -1e+20
+      ],
+      "ok": false
+     }
+    }
+   }
+  },
+  "duckdb": {
+   "engine": "duckdb",
+   "version": {
+    "engine": "DuckDB",
+    "version": "1.5.6",
+    "threads": 32
+   },
+   "cells": {
+    "q0_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q0_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.12
+    },
+    "q0_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.1
+    },
+    "q0_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q0_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q0_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.1
+    },
+    "q1_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.12
+    },
+    "q1_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.12
+    },
+    "q1_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.13
+    },
+    "q1_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.11
+    },
+    "q1_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.1
+    },
+    "q1_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.11
+    },
+    "q2_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q2_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q2_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q2_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.12
+    },
+    "q2_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.12
+    },
+    "q2_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.12
+    }
+   },
+   "sql": {
+    "q0_eps0.001_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id"
+   },
+   "minimal": {
+    "one_large": [
+     1.0,
+     2.0,
+     1e+20,
+     1e+20,
+     1e+20,
+     3.0,
+     3.0
+    ],
+    "two_large": [
+     1.0,
+     1e+40,
+     1e+40,
+     1e+40,
+     1e+20,
+     3.0,
+     3.0
+    ]
+   },
+   "graded": {
+    "q0_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 2487,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.832396987816157e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 4452,
+     "max_rel_err_vs_true": 0.1654006116178461,
+     "class": "correct"
+    },
+    "q0_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 251,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.669140993468636e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 286,
+     "max_rel_err_vs_true": 0.0023529411764785547,
+     "class": "correct"
+    },
+    "q0_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.6905945645152632e-15,
+     "max_abs_err_vs_formula": 1.2434497875801753e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.134310825491686e-15,
+     "class": "correct"
+    },
+    "q0_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.699379355811814e-15,
+     "max_abs_err_vs_formula": 2.1316282072803006e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.5113191882312304e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1632242856033445e-15,
+     "max_abs_err_vs_formula": 7.993605777301127e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.4041094126409682e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.5611227439696732e-15,
+     "max_abs_err_vs_formula": 1.0658141036401503e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.682504820416488e-15,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 22403,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.447905426828972e-16,
+     "max_abs_err_vs_formula": 4.440892098500626e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 36696,
+     "max_rel_err_vs_true": 0.33324183433121335,
+     "class": "correct"
+    },
+    "q1_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 389,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.303935005673064e-16,
+     "max_abs_err_vs_formula": 4.440892098500626e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 458,
+     "max_rel_err_vs_true": 0.00017792340981236733,
+     "class": "correct"
+    },
+    "q1_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.4915717744298815e-15,
+     "max_abs_err_vs_formula": 9.769962616701378e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.775946493274523e-15,
+     "class": "correct"
+    },
+    "q1_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.1687159997959242e-15,
+     "max_abs_err_vs_formula": 1.4210854715202004e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.7861013802379124e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.3779246012172537e-15,
+     "max_abs_err_vs_formula": 7.993605777301127e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.2889232666099825e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.618675896654146e-15,
+     "max_abs_err_vs_formula": 8.881784197001252e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.5793176687132858e-15,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 89842,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 4.71825163891412e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 116298,
+     "max_rel_err_vs_true": 0.4677940009217499,
+     "class": "correct"
+    },
+    "q2_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 871,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 4.736951701151013e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 1545,
+     "max_rel_err_vs_true": 0.0033160533198137382,
+     "class": "correct"
+    },
+    "q2_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.5308055811020733e-15,
+     "max_abs_err_vs_formula": 1.2434497875801753e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.215290652595333e-15,
+     "class": "correct"
+    },
+    "q2_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.1406773540137e-15,
+     "max_abs_err_vs_formula": 1.7763568394002505e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.060959537281424e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.3016040588227016e-15,
+     "max_abs_err_vs_formula": 8.881784197001252e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.2807453079590614e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.7298182555129322e-15,
+     "max_abs_err_vs_formula": 1.0658141036401503e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.890172474417645e-15,
+     "class": "correct"
+    }
+   },
+   "minimal_graded": {
+    "one_large": {
+     "exact": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    },
+    "two_large": {
+     "exact": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    }
+   }
+  },
+  "pandas": {
+   "engine": "pandas",
+   "version": {
+    "engine": "pandas",
+    "version": "2.3.3"
+   },
+   "cells": {
+    "q0_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.16
+    },
+    "q0_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.18
+    },
+    "q0_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q0_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q0_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q0_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q1_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.17
+    },
+    "q1_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q1_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q1_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q1_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q1_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q2_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q2_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q2_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q2_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q2_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.14
+    },
+    "q2_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.14
+    }
+   },
+   "sql": {
+    "q0_eps0.001_k50": "w = exp((s0 - 1.0) / 0.001); g = df.sort_values([category, ts, id]).groupby('category'); g[w*rating].rolling(50, min_periods=1).sum() / g[w].rolling(50, min_periods=1).sum()",
+    "q0_eps0.001_k1000": "w = exp((s0 - 1.0) / 0.001); g = df.sort_values([category, ts, id]).groupby('category'); g[w*rating].rolling(1000, min_periods=1).sum() / g[w].rolling(1000, min_periods=1).sum()",
+    "q0_eps0.02_k50": "w = exp((s0 - 1.0) / 0.02); g = df.sort_values([category, ts, id]).groupby('category'); g[w*rating].rolling(50, min_periods=1).sum() / g[w].rolling(50, min_periods=1).sum()",
+    "q0_eps0.02_k1000": "w = exp((s0 - 1.0) / 0.02); g = df.sort_values([category, ts, id]).groupby('category'); g[w*rating].rolling(1000, min_periods=1).sum() / g[w].rolling(1000, min_periods=1).sum()",
+    "q0_eps0.1_k50": "w = exp((s0 - 1.0) / 0.1); g = df.sort_values([category, ts, id]).groupby('category'); g[w*rating].rolling(50, min_periods=1).sum() / g[w].rolling(50, min_periods=1).sum()",
+    "q0_eps0.1_k1000": "w = exp((s0 - 1.0) / 0.1); g = df.sort_values([category, ts, id]).groupby('category'); g[w*rating].rolling(1000, min_periods=1).sum() / g[w].rolling(1000, min_periods=1).sum()"
+   },
+   "minimal": {
+    "one_large": [
+     1.0,
+     2.0,
+     1e+20,
+     1e+20,
+     1e+20,
+     3.0,
+     3.0
+    ],
+    "two_large": [
+     1.0,
+     1e+40,
+     1e+40,
+     1e+40,
+     1e+20,
+     3.0,
+     3.0
+    ]
+   },
+   "graded": {
+    "q0_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 2487,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 933,
+     "host_wrong_rows": 76118,
+     "max_rel_err_vs_formula": 3.86607412630103e+62,
+     "max_abs_err_vs_formula": 2.5902696646216904e+63,
+     "out_of_range_rows": 24280,
+     "worst": {
+      "id": 130802,
+      "value": 2.5902696646216904e+63,
+      "formula_ref": 6.7,
+      "true_ref": 6.7
+     },
+     "user_wrong_rows": 80261,
+     "max_rel_err_vs_true": 3.86607412630103e+62,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 251,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 1,
+     "host_wrong_rows": 34502,
+     "max_rel_err_vs_formula": 2351.6243252455624,
+     "max_abs_err_vs_formula": 14344.908383997934,
+     "out_of_range_rows": 7538,
+     "worst": {
+      "id": 294111,
+      "value": -14338.808383997934,
+      "formula_ref": 6.100000000000001,
+      "true_ref": 6.100000000000003
+     },
+     "user_wrong_rows": 34789,
+     "max_rel_err_vs_true": 2351.6243252455615,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 3803,
+     "max_rel_err_vs_formula": 0.2611542270766697,
+     "max_abs_err_vs_formula": 1.6373928587837918,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 284643,
+      "value": 4.632438103221222,
+      "formula_ref": 6.269830962005014,
+      "true_ref": 6.269830962005013
+     },
+     "user_wrong_rows": 3803,
+     "max_rel_err_vs_true": 0.2611542270766696,
+     "class": "wrong-finite"
+    },
+    "q0_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.392888976192887e-13,
+     "max_abs_err_vs_formula": 1.5969447986208252e-12,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.392888976192887e-13,
+     "class": "correct"
+    },
+    "q0_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.6550713552432832e-15,
+     "max_abs_err_vs_formula": 8.881784197001252e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.6550713552432832e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 9.84916068900904e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.0019986076403188e-15,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 22403,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 968,
+     "host_wrong_rows": 56367,
+     "max_rel_err_vs_formula": 1.1480615850751007e+44,
+     "max_abs_err_vs_formula": 7.692012620003457e+44,
+     "out_of_range_rows": 18447,
+     "worst": {
+      "id": 152339,
+      "value": 7.692012620003457e+44,
+      "formula_ref": 6.700000000000245,
+      "true_ref": 6.7
+     },
+     "user_wrong_rows": 89925,
+     "max_rel_err_vs_true": 1.1480615850751429e+44,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 389,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 1,
+     "host_wrong_rows": 34157,
+     "max_rel_err_vs_formula": 7.30896076588855e+48,
+     "max_abs_err_vs_formula": 5.47652043484817e+49,
+     "out_of_range_rows": 10142,
+     "worst": {
+      "id": 385161,
+      "value": 5.47652043484817e+49,
+      "formula_ref": 7.492885254504973,
+      "true_ref": 7.492885254504971
+     },
+     "user_wrong_rows": 34616,
+     "max_rel_err_vs_true": 7.308960765888553e+48,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.599018310722085e-10,
+     "max_abs_err_vs_formula": 9.972440651040415e-10,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.599022583137251e-10,
+     "class": "correct"
+    },
+    "q1_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 3.751940034824806e-14,
+     "max_abs_err_vs_formula": 2.0694557179012918e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.7519194153636544e-14,
+     "class": "correct"
+    },
+    "q1_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.608569041712068e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.511869669140922e-16,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.616354910022509e-16,
+     "max_abs_err_vs_formula": 4.440892098500626e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 6.560687459527578e-16,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 89842,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 1732,
+     "host_wrong_rows": 27206,
+     "max_rel_err_vs_formula": 4.196067228628868e+49,
+     "max_abs_err_vs_formula": 3.147050421471651e+50,
+     "out_of_range_rows": 7443,
+     "worst": {
+      "id": 343840,
+      "value": 3.147050421471651e+50,
+      "formula_ref": 7.5,
+      "true_ref": 7.499999999998028
+     },
+     "user_wrong_rows": 139783,
+     "max_rel_err_vs_true": 4.1960672287347116e+49,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 871,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 13,
+     "host_wrong_rows": 64419,
+     "max_rel_err_vs_formula": 1078750338982.6912,
+     "max_abs_err_vs_formula": 6998693398755.109,
+     "out_of_range_rows": 26220,
+     "worst": {
+      "id": 170232,
+      "value": -6998693398748.622,
+      "formula_ref": 6.487778632222896,
+      "true_ref": 6.487778632222855
+     },
+     "user_wrong_rows": 65977,
+     "max_rel_err_vs_true": 1078750338982.698,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 1990,
+     "max_rel_err_vs_formula": 0.7487124801446121,
+     "max_abs_err_vs_formula": 5.894382435385596,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 283868,
+      "value": 1.5820829775955425,
+      "formula_ref": 6.295907486794438,
+      "true_ref": 6.295907486794438
+     },
+     "user_wrong_rows": 1990,
+     "max_rel_err_vs_true": 0.7487124801446121,
+     "class": "wrong-finite"
+    },
+    "q2_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.189331260764373e-09,
+     "max_abs_err_vs_formula": 3.348144872461489e-08,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.1893307101248716e-09,
+     "class": "correct"
+    },
+    "q2_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.4870583265655593e-14,
+     "max_abs_err_vs_formula": 9.414691248821327e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.4642364859565285e-14,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 9.660888307131668e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 9.660888307131668e-16,
+     "class": "correct"
+    }
+   },
+   "minimal_graded": {
+    "one_large": {
+     "exact": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    },
+    "two_large": {
+     "exact": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    }
+   }
+  },
+  "polars": {
+   "engine": "polars",
+   "version": {
+    "engine": "Polars",
+    "version": "2.0.0"
+   },
+   "cells": {
+    "q0_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.1
+    },
+    "q0_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.06
+    },
+    "q0_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.04
+    },
+    "q0_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.05
+    },
+    "q0_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.05
+    },
+    "q0_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.05
+    },
+    "q1_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.06
+    },
+    "q1_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.06
+    },
+    "q1_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.04
+    },
+    "q1_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.04
+    },
+    "q1_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.06
+    },
+    "q1_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.06
+    },
+    "q2_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.08
+    },
+    "q2_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.05
+    },
+    "q2_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.06
+    },
+    "q2_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.04
+    },
+    "q2_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.05
+    },
+    "q2_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.05
+    },
+    "q0_eps0.001_k50_sql": {
+     "status": "ok",
+     "seconds": 0.09
+    },
+    "q0_eps0.001_k1000_sql": {
+     "status": "ok",
+     "seconds": 0.08
+    },
+    "q0_eps0.02_k50_sql": {
+     "status": "ok",
+     "seconds": 0.09
+    },
+    "q0_eps0.02_k1000_sql": {
+     "status": "ok",
+     "seconds": 0.09
+    },
+    "q0_eps0.1_k50_sql": {
+     "status": "ok",
+     "seconds": 0.07
+    },
+    "q0_eps0.1_k1000_sql": {
+     "status": "ok",
+     "seconds": 0.09
+    },
+    "q1_eps0.001_k50_sql": {
+     "status": "ok",
+     "seconds": 0.15
+    },
+    "q1_eps0.001_k1000_sql": {
+     "status": "ok",
+     "seconds": 0.07
+    },
+    "q1_eps0.02_k50_sql": {
+     "status": "ok",
+     "seconds": 0.1
+    },
+    "q1_eps0.02_k1000_sql": {
+     "status": "ok",
+     "seconds": 0.07
+    },
+    "q1_eps0.1_k50_sql": {
+     "status": "ok",
+     "seconds": 0.07
+    },
+    "q1_eps0.1_k1000_sql": {
+     "status": "ok",
+     "seconds": 0.08
+    },
+    "q2_eps0.001_k50_sql": {
+     "status": "ok",
+     "seconds": 0.1
+    },
+    "q2_eps0.001_k1000_sql": {
+     "status": "ok",
+     "seconds": 0.09
+    },
+    "q2_eps0.02_k50_sql": {
+     "status": "ok",
+     "seconds": 0.07
+    },
+    "q2_eps0.02_k1000_sql": {
+     "status": "ok",
+     "seconds": 0.07
+    },
+    "q2_eps0.1_k50_sql": {
+     "status": "ok",
+     "seconds": 0.09
+    },
+    "q2_eps0.1_k1000_sql": {
+     "status": "ok",
+     "seconds": 0.08
+    }
+   },
+   "sql": {
+    "q0_eps0.001_k50": "df.sort(category, ts, id).with_columns(w = ((s0 - 1.0) / 0.001).exp()); rolling_sum(w * rating, window_size=50, min_samples=1).over('category') / rolling_sum(w, window_size=50, min_samples=1).over('category')",
+    "q0_eps0.001_k1000": "df.sort(category, ts, id).with_columns(w = ((s0 - 1.0) / 0.001).exp()); rolling_sum(w * rating, window_size=1000, min_samples=1).over('category') / rolling_sum(w, window_size=1000, min_samples=1).over('category')",
+    "q0_eps0.02_k50": "df.sort(category, ts, id).with_columns(w = ((s0 - 1.0) / 0.02).exp()); rolling_sum(w * rating, window_size=50, min_samples=1).over('category') / rolling_sum(w, window_size=50, min_samples=1).over('category')",
+    "q0_eps0.02_k1000": "df.sort(category, ts, id).with_columns(w = ((s0 - 1.0) / 0.02).exp()); rolling_sum(w * rating, window_size=1000, min_samples=1).over('category') / rolling_sum(w, window_size=1000, min_samples=1).over('category')",
+    "q0_eps0.1_k50": "df.sort(category, ts, id).with_columns(w = ((s0 - 1.0) / 0.1).exp()); rolling_sum(w * rating, window_size=50, min_samples=1).over('category') / rolling_sum(w, window_size=50, min_samples=1).over('category')",
+    "q0_eps0.1_k1000": "df.sort(category, ts, id).with_columns(w = ((s0 - 1.0) / 0.1).exp()); rolling_sum(w * rating, window_size=1000, min_samples=1).over('category') / rolling_sum(w, window_size=1000, min_samples=1).over('category')",
+    "q0_eps0.001_k50_sql": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000_sql": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50_sql": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000_sql": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50_sql": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000_sql": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id"
+   },
+   "minimal": {
+    "one_large": [
+     1.0,
+     2.0,
+     1e+20,
+     1e+20,
+     1e+20,
+     3.0,
+     3.0
+    ],
+    "two_large": [
+     1.0,
+     1e+40,
+     1e+40,
+     1e+40,
+     1e+20,
+     1.0,
+     1.0
+    ]
+   },
+   "sql_probe": "accepted",
+   "graded": {
+    "q0_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 2487,
+     "finite_where_formula_undefined": 1076,
+     "host_nan_rows": 933,
+     "host_wrong_rows": 76123,
+     "max_rel_err_vs_formula": 3.86607412630103e+62,
+     "max_abs_err_vs_formula": 2.5902696646216904e+63,
+     "out_of_range_rows": 24866,
+     "worst": {
+      "id": 130802,
+      "value": 2.5902696646216904e+63,
+      "formula_ref": 6.7,
+      "true_ref": 6.7
+     },
+     "user_wrong_rows": 80264,
+     "max_rel_err_vs_true": 3.86607412630103e+62,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 251,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 1,
+     "host_wrong_rows": 34502,
+     "max_rel_err_vs_formula": 2351.6243252455624,
+     "max_abs_err_vs_formula": 14344.908383997934,
+     "out_of_range_rows": 8039,
+     "worst": {
+      "id": 294111,
+      "value": -14338.808383997934,
+      "formula_ref": 6.100000000000001,
+      "true_ref": 6.100000000000003
+     },
+     "user_wrong_rows": 34789,
+     "max_rel_err_vs_true": 2351.6243252455615,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 3803,
+     "max_rel_err_vs_formula": 0.26115422707666996,
+     "max_abs_err_vs_formula": 1.6373928587837936,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 284643,
+      "value": 4.6324381032212205,
+      "formula_ref": 6.269830962005014,
+      "true_ref": 6.269830962005013
+     },
+     "user_wrong_rows": 3803,
+     "max_rel_err_vs_true": 0.26115422707666985,
+     "class": "wrong-finite"
+    },
+    "q0_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1270935935443944e-12,
+     "max_abs_err_vs_formula": 7.333689211463934e-12,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.1270935935443944e-12,
+     "class": "correct"
+    },
+    "q0_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1281695902459694e-15,
+     "max_abs_err_vs_formula": 6.217248937900877e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.0962747201396324e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.900874655368388e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.313702691577954e-16,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 22403,
+     "finite_where_formula_undefined": 4552,
+     "host_nan_rows": 965,
+     "host_wrong_rows": 56146,
+     "max_rel_err_vs_formula": 1.1480615850751007e+44,
+     "max_abs_err_vs_formula": 7.692012620003457e+44,
+     "out_of_range_rows": 20554,
+     "worst": {
+      "id": 152339,
+      "value": 7.692012620003457e+44,
+      "formula_ref": 6.700000000000245,
+      "true_ref": 6.7
+     },
+     "user_wrong_rows": 89667,
+     "max_rel_err_vs_true": 2.0654237690864614e+55,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 389,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 1,
+     "host_wrong_rows": 34157,
+     "max_rel_err_vs_formula": 7.30896076588855e+48,
+     "max_abs_err_vs_formula": 5.47652043484817e+49,
+     "out_of_range_rows": 10142,
+     "worst": {
+      "id": 385161,
+      "value": 5.47652043484817e+49,
+      "formula_ref": 7.492885254504973,
+      "true_ref": 7.492885254504971
+     },
+     "user_wrong_rows": 34616,
+     "max_rel_err_vs_true": 7.308960765888553e+48,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.6030286844254287e-10,
+     "max_abs_err_vs_formula": 9.99745175533917e-10,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.603032956840595e-10,
+     "class": "correct"
+    },
+    "q1_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.444351714563211e-13,
+     "max_abs_err_vs_formula": 1.7479351299698465e-12,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.444351714563211e-13,
+     "class": "correct"
+    },
+    "q1_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 9.328383830630738e-16,
+     "max_abs_err_vs_formula": 6.217248937900877e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.816029772627419e-16,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.669320124608217e-16,
+     "max_abs_err_vs_formula": 4.440892098500626e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.916568454806455e-16,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 89842,
+     "finite_where_formula_undefined": 13640,
+     "host_nan_rows": 1713,
+     "host_wrong_rows": 27173,
+     "max_rel_err_vs_formula": 4.196067228628868e+49,
+     "max_abs_err_vs_formula": 3.147050421471651e+50,
+     "out_of_range_rows": 12690,
+     "worst": {
+      "id": 343840,
+      "value": 3.147050421471651e+50,
+      "formula_ref": 7.5,
+      "true_ref": 7.499999999998028
+     },
+     "user_wrong_rows": 139736,
+     "max_rel_err_vs_true": 4.1960672287347116e+49,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 871,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 13,
+     "host_wrong_rows": 64639,
+     "max_rel_err_vs_formula": 1078750338982.7808,
+     "max_abs_err_vs_formula": 6998693398755.69,
+     "out_of_range_rows": 26420,
+     "worst": {
+      "id": 170232,
+      "value": -6998693398749.203,
+      "formula_ref": 6.487778632222896,
+      "true_ref": 6.487778632222855
+     },
+     "user_wrong_rows": 66197,
+     "max_rel_err_vs_true": 1078750338982.7875,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 4549,
+     "max_rel_err_vs_formula": 0.7487124801446122,
+     "max_abs_err_vs_formula": 5.894382435385596,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 283868,
+      "value": 1.5820829775955423,
+      "formula_ref": 6.295907486794438,
+      "true_ref": 6.295907486794438
+     },
+     "user_wrong_rows": 4549,
+     "max_rel_err_vs_true": 0.7487124801446122,
+     "class": "wrong-finite"
+    },
+    "q2_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 4.677376614202873e-12,
+     "max_abs_err_vs_formula": 1.9765522552006587e-11,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 4.677586795591129e-12,
+     "class": "correct"
+    },
+    "q2_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.4870583265655593e-14,
+     "max_abs_err_vs_formula": 9.414691248821327e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.4658583043663227e-14,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.127103635832028e-15,
+     "max_abs_err_vs_formula": 6.217248937900877e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.127103635832028e-15,
+     "class": "correct"
+    },
+    "q0_eps0.001_k50_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 2487,
+     "finite_where_formula_undefined": 1076,
+     "host_nan_rows": 933,
+     "host_wrong_rows": 76123,
+     "max_rel_err_vs_formula": 3.86607412630103e+62,
+     "max_abs_err_vs_formula": 2.5902696646216904e+63,
+     "out_of_range_rows": 24866,
+     "worst": {
+      "id": 130802,
+      "value": 2.5902696646216904e+63,
+      "formula_ref": 6.7,
+      "true_ref": 6.7
+     },
+     "user_wrong_rows": 80264,
+     "max_rel_err_vs_true": 3.86607412630103e+62,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.001_k1000_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 251,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 1,
+     "host_wrong_rows": 34502,
+     "max_rel_err_vs_formula": 2351.6243252455624,
+     "max_abs_err_vs_formula": 14344.908383997934,
+     "out_of_range_rows": 8039,
+     "worst": {
+      "id": 294111,
+      "value": -14338.808383997934,
+      "formula_ref": 6.100000000000001,
+      "true_ref": 6.100000000000003
+     },
+     "user_wrong_rows": 34789,
+     "max_rel_err_vs_true": 2351.6243252455615,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.02_k50_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 3803,
+     "max_rel_err_vs_formula": 0.26115422707666996,
+     "max_abs_err_vs_formula": 1.6373928587837936,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 284643,
+      "value": 4.6324381032212205,
+      "formula_ref": 6.269830962005014,
+      "true_ref": 6.269830962005013
+     },
+     "user_wrong_rows": 3803,
+     "max_rel_err_vs_true": 0.26115422707666985,
+     "class": "wrong-finite"
+    },
+    "q0_eps0.02_k1000_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1270935935443944e-12,
+     "max_abs_err_vs_formula": 7.333689211463934e-12,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.1270935935443944e-12,
+     "class": "correct"
+    },
+    "q0_eps0.1_k50_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1281695902459694e-15,
+     "max_abs_err_vs_formula": 6.217248937900877e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.0962747201396324e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.900874655368388e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.313702691577954e-16,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 22403,
+     "finite_where_formula_undefined": 4552,
+     "host_nan_rows": 965,
+     "host_wrong_rows": 56146,
+     "max_rel_err_vs_formula": 1.1480615850751007e+44,
+     "max_abs_err_vs_formula": 7.692012620003457e+44,
+     "out_of_range_rows": 20554,
+     "worst": {
+      "id": 152339,
+      "value": 7.692012620003457e+44,
+      "formula_ref": 6.700000000000245,
+      "true_ref": 6.7
+     },
+     "user_wrong_rows": 89667,
+     "max_rel_err_vs_true": 2.0654237690864614e+55,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.001_k1000_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 389,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 1,
+     "host_wrong_rows": 34157,
+     "max_rel_err_vs_formula": 7.30896076588855e+48,
+     "max_abs_err_vs_formula": 5.47652043484817e+49,
+     "out_of_range_rows": 10142,
+     "worst": {
+      "id": 385161,
+      "value": 5.47652043484817e+49,
+      "formula_ref": 7.492885254504973,
+      "true_ref": 7.492885254504971
+     },
+     "user_wrong_rows": 34616,
+     "max_rel_err_vs_true": 7.308960765888553e+48,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.02_k50_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.6030286844254287e-10,
+     "max_abs_err_vs_formula": 9.99745175533917e-10,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.603032956840595e-10,
+     "class": "correct"
+    },
+    "q1_eps0.02_k1000_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.444351714563211e-13,
+     "max_abs_err_vs_formula": 1.7479351299698465e-12,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.444351714563211e-13,
+     "class": "correct"
+    },
+    "q1_eps0.1_k50_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 9.328383830630738e-16,
+     "max_abs_err_vs_formula": 6.217248937900877e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.816029772627419e-16,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.669320124608217e-16,
+     "max_abs_err_vs_formula": 4.440892098500626e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.916568454806455e-16,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 89842,
+     "finite_where_formula_undefined": 13640,
+     "host_nan_rows": 1713,
+     "host_wrong_rows": 27173,
+     "max_rel_err_vs_formula": 4.196067228628868e+49,
+     "max_abs_err_vs_formula": 3.147050421471651e+50,
+     "out_of_range_rows": 12690,
+     "worst": {
+      "id": 343840,
+      "value": 3.147050421471651e+50,
+      "formula_ref": 7.5,
+      "true_ref": 7.499999999998028
+     },
+     "user_wrong_rows": 139736,
+     "max_rel_err_vs_true": 4.1960672287347116e+49,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.001_k1000_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 871,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 13,
+     "host_wrong_rows": 64639,
+     "max_rel_err_vs_formula": 1078750338982.7808,
+     "max_abs_err_vs_formula": 6998693398755.69,
+     "out_of_range_rows": 26420,
+     "worst": {
+      "id": 170232,
+      "value": -6998693398749.203,
+      "formula_ref": 6.487778632222896,
+      "true_ref": 6.487778632222855
+     },
+     "user_wrong_rows": 66197,
+     "max_rel_err_vs_true": 1078750338982.7875,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.02_k50_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 4549,
+     "max_rel_err_vs_formula": 0.7487124801446122,
+     "max_abs_err_vs_formula": 5.894382435385596,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 283868,
+      "value": 1.5820829775955423,
+      "formula_ref": 6.295907486794438,
+      "true_ref": 6.295907486794438
+     },
+     "user_wrong_rows": 4549,
+     "max_rel_err_vs_true": 0.7487124801446122,
+     "class": "wrong-finite"
+    },
+    "q2_eps0.02_k1000_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 4.677376614202873e-12,
+     "max_abs_err_vs_formula": 1.9765522552006587e-11,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 4.677586795591129e-12,
+     "class": "correct"
+    },
+    "q2_eps0.1_k50_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.4870583265655593e-14,
+     "max_abs_err_vs_formula": 9.414691248821327e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.4658583043663227e-14,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000_sql": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.127103635832028e-15,
+     "max_abs_err_vs_formula": 6.217248937900877e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.127103635832028e-15,
+     "class": "correct"
+    }
+   },
+   "minimal_graded": {
+    "one_large": {
+     "exact": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    },
+    "two_large": {
+     "exact": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       1e+20,
+       1.0,
+       1.0
+      ],
+      "ok": false
+     }
+    }
+   }
+  },
+  "postgresql": {
+   "engine": "postgresql",
+   "version": {
+    "engine": "PostgreSQL",
+    "version": "17.10",
+    "server": "PostgreSQL 17.10 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, 64-bit",
+    "build": "release (~/.pgrx/17.10/pg-release-install)",
+    "aggminvtransfn": {
+     "avg(double precision)": "-",
+     "sum(double precision)": "-",
+     "sum(numeric)": "numeric_accum_inv",
+     "unsafe_sum(double precision)": "float8mi"
+    }
+   },
+   "cells": {
+    "q0_eps0.001_k50": {
+     "status": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q0_eps0.001_k1000": {
+     "status": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q0_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 3.06
+    },
+    "q0_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 37.81
+    },
+    "q0_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 3.12
+    },
+    "q0_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 39.81
+    },
+    "q1_eps0.001_k50": {
+     "status": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q1_eps0.001_k1000": {
+     "status": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q1_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 3.15
+    },
+    "q1_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 39.99
+    },
+    "q1_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 3.42
+    },
+    "q1_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 38.04
+    },
+    "q2_eps0.001_k50": {
+     "status": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q2_eps0.001_k1000": {
+     "status": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q2_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 3.01
+    },
+    "q2_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 38.22
+    },
+    "q2_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 2.97
+    },
+    "q2_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 38.28
+    },
+    "q0_eps0.001_k50_clamp": {
+     "status": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q0_eps0.001_k1000_clamp": {
+     "status": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q1_eps0.001_k50_clamp": {
+     "status": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q1_eps0.001_k1000_clamp": {
+     "status": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q2_eps0.001_k50_clamp": {
+     "status": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q2_eps0.001_k1000_clamp": {
+     "status": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q0_eps0.001_k50_clamp_nullif": {
+     "status": "ok",
+     "seconds": 2.73
+    },
+    "q0_eps0.001_k1000_clamp_nullif": {
+     "status": "ok",
+     "seconds": 35.09
+    },
+    "q1_eps0.001_k50_clamp_nullif": {
+     "status": "ok",
+     "seconds": 2.72
+    },
+    "q1_eps0.001_k1000_clamp_nullif": {
+     "status": "ok",
+     "seconds": 36.11
+    },
+    "q2_eps0.001_k50_clamp_nullif": {
+     "status": "ok",
+     "seconds": 2.8
+    },
+    "q2_eps0.001_k1000_clamp_nullif": {
+     "status": "ok",
+     "seconds": 35.29
+    },
+    "q0_eps0.001_k50_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.11
+    },
+    "q0_eps0.001_k1000_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.01
+    },
+    "q0_eps0.02_k50_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.09
+    },
+    "q0_eps0.02_k1000_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.04
+    },
+    "q0_eps0.1_k50_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.06
+    },
+    "q0_eps0.1_k1000_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.07
+    },
+    "q1_eps0.001_k50_unsafe_sum": {
+     "status": "ok",
+     "seconds": 0.98
+    },
+    "q1_eps0.001_k1000_unsafe_sum": {
+     "status": "ok",
+     "seconds": 0.98
+    },
+    "q1_eps0.02_k50_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.0
+    },
+    "q1_eps0.02_k1000_unsafe_sum": {
+     "status": "ok",
+     "seconds": 0.95
+    },
+    "q1_eps0.1_k50_unsafe_sum": {
+     "status": "ok",
+     "seconds": 0.9
+    },
+    "q1_eps0.1_k1000_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.04
+    },
+    "q2_eps0.001_k50_unsafe_sum": {
+     "status": "ok",
+     "seconds": 0.94
+    },
+    "q2_eps0.001_k1000_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.34
+    },
+    "q2_eps0.02_k50_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.0
+    },
+    "q2_eps0.02_k1000_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.16
+    },
+    "q2_eps0.1_k50_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.15
+    },
+    "q2_eps0.1_k1000_unsafe_sum": {
+     "status": "ok",
+     "seconds": 1.05
+    },
+    "q0_eps0.001_k50_numeric": {
+     "status": "ok",
+     "seconds": 3.14
+    },
+    "q0_eps0.001_k1000_numeric": {
+     "status": "ok",
+     "seconds": 4.22
+    },
+    "q0_eps0.02_k50_numeric": {
+     "status": "ok",
+     "seconds": 2.18
+    },
+    "q0_eps0.02_k1000_numeric": {
+     "status": "ok",
+     "seconds": 2.05
+    },
+    "q0_eps0.1_k50_numeric": {
+     "status": "ok",
+     "seconds": 1.82
+    },
+    "q0_eps0.1_k1000_numeric": {
+     "status": "ok",
+     "seconds": 1.85
+    },
+    "q1_eps0.001_k50_numeric": {
+     "status": "ok",
+     "seconds": 2.57
+    },
+    "q1_eps0.001_k1000_numeric": {
+     "status": "ok",
+     "seconds": 3.61
+    },
+    "q1_eps0.02_k50_numeric": {
+     "status": "ok",
+     "seconds": 2.1
+    },
+    "q1_eps0.02_k1000_numeric": {
+     "status": "ok",
+     "seconds": 2.11
+    },
+    "q1_eps0.1_k50_numeric": {
+     "status": "ok",
+     "seconds": 1.78
+    },
+    "q1_eps0.1_k1000_numeric": {
+     "status": "ok",
+     "seconds": 1.9
+    },
+    "q2_eps0.001_k50_numeric": {
+     "status": "ok",
+     "seconds": 2.02
+    },
+    "q2_eps0.001_k1000_numeric": {
+     "status": "ok",
+     "seconds": 3.99
+    },
+    "q2_eps0.02_k50_numeric": {
+     "status": "ok",
+     "seconds": 2.09
+    },
+    "q2_eps0.02_k1000_numeric": {
+     "status": "ok",
+     "seconds": 2.1
+    },
+    "q2_eps0.1_k50_numeric": {
+     "status": "ok",
+     "seconds": 1.88
+    },
+    "q2_eps0.1_k1000_numeric": {
+     "status": "ok",
+     "seconds": 1.84
+    }
+   },
+   "sql": {
+    "q0_eps0.001_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.001::float8) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.001::float8) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.02::float8) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.02::float8) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.1::float8) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.1::float8) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k50_clamp": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.001::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.001::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000_clamp": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.001::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.001::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k50_unsafe_sum": "SELECT id,\n       category,\n       ts,\n       rating,\n       unsafe_sum(w * rating) OVER win / NULLIF(unsafe_sum(w) OVER win, 0) AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.001::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.001::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000_unsafe_sum": "SELECT id,\n       category,\n       ts,\n       rating,\n       unsafe_sum(w * rating) OVER win / NULLIF(unsafe_sum(w) OVER win, 0) AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.001::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.001::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50_unsafe_sum": "SELECT id,\n       category,\n       ts,\n       rating,\n       unsafe_sum(w * rating) OVER win / NULLIF(unsafe_sum(w) OVER win, 0) AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.02::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.02::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000_unsafe_sum": "SELECT id,\n       category,\n       ts,\n       rating,\n       unsafe_sum(w * rating) OVER win / NULLIF(unsafe_sum(w) OVER win, 0) AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.02::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.02::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50_unsafe_sum": "SELECT id,\n       category,\n       ts,\n       rating,\n       unsafe_sum(w * rating) OVER win / NULLIF(unsafe_sum(w) OVER win, 0) AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.1::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.1::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000_unsafe_sum": "SELECT id,\n       category,\n       ts,\n       rating,\n       unsafe_sum(w * rating) OVER win / NULLIF(unsafe_sum(w) OVER win, 0) AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.1::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.1::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k50_numeric": "SELECT id,\n       category,\n       ts,\n       rating,\n       (sum((w * rating)::numeric) OVER win / NULLIF(sum(w::numeric) OVER win, 0))::float8 AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.001::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.001::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000_numeric": "SELECT id,\n       category,\n       ts,\n       rating,\n       (sum((w * rating)::numeric) OVER win / NULLIF(sum(w::numeric) OVER win, 0))::float8 AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.001::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.001::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50_numeric": "SELECT id,\n       category,\n       ts,\n       rating,\n       (sum((w * rating)::numeric) OVER win / NULLIF(sum(w::numeric) OVER win, 0))::float8 AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.02::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.02::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000_numeric": "SELECT id,\n       category,\n       ts,\n       rating,\n       (sum((w * rating)::numeric) OVER win / NULLIF(sum(w::numeric) OVER win, 0))::float8 AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.02::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.02::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50_numeric": "SELECT id,\n       category,\n       ts,\n       rating,\n       (sum((w * rating)::numeric) OVER win / NULLIF(sum(w::numeric) OVER win, 0))::float8 AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.1::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.1::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000_numeric": "SELECT id,\n       category,\n       ts,\n       rating,\n       (sum((w * rating)::numeric) OVER win / NULLIF(sum(w::numeric) OVER win, 0))::float8 AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.1::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.1::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k50_clamp_nullif": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / NULLIF(sum(w) OVER win, 0) AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.001::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.001::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000_clamp_nullif": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / NULLIF(sum(w) OVER win, 0) AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           CASE WHEN -(1.0 - s0) / 0.001::float8 < -700 THEN 0::float8 ELSE exp(-(1.0 - s0) / 0.001::float8) END AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id"
+   },
+   "minimal": {
+    "one_large": {
+     "SUM": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "unsafe_sum": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      1.0,
+      1.0
+     ]
+    },
+    "two_large": {
+     "SUM": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "unsafe_sum": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1.0,
+      -1e+20,
+      -1e+20
+     ]
+    }
+   },
+   "graded": {
+    "q0_eps0.001_k50": {
+     "cls": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q0_eps0.001_k1000": {
+     "cls": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q0_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.8370967316070895e-15,
+     "max_abs_err_vs_formula": 1.4210854715202004e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.262405785368512e-15,
+     "class": "correct"
+    },
+    "q0_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.177591683574642e-15,
+     "max_abs_err_vs_formula": 4.263256414560601e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 6.4937120707288696e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.5076341234344579e-15,
+     "max_abs_err_vs_formula": 9.769962616701378e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.7566719305589695e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.4546867337096784e-15,
+     "max_abs_err_vs_formula": 3.730349362740526e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.456042684128582e-15,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50": {
+     "cls": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q1_eps0.001_k1000": {
+     "cls": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q1_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.963841853869401e-15,
+     "max_abs_err_vs_formula": 1.3322676295501878e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.768398411457153e-15,
+     "class": "correct"
+    },
+    "q1_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.949108489687889e-15,
+     "max_abs_err_vs_formula": 4.3520742565306136e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 6.279620625229623e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.3711465527710272e-15,
+     "max_abs_err_vs_formula": 8.881784197001252e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.5557793883936821e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.575405065845253e-15,
+     "max_abs_err_vs_formula": 3.730349362740526e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.554975013431865e-15,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50": {
+     "cls": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q2_eps0.001_k1000": {
+     "cls": "error",
+     "error": "NumericValueOutOfRange: value out of range: underflow"
+    },
+    "q2_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.9183956305201313e-15,
+     "max_abs_err_vs_formula": 1.4210854715202004e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.2154214430986332e-15,
+     "class": "correct"
+    },
+    "q2_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.019003344145323e-15,
+     "max_abs_err_vs_formula": 5.773159728050814e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.63586133179479e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.4885329436901714e-15,
+     "max_abs_err_vs_formula": 1.0658141036401503e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.6133485422629133e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.727243060410096e-15,
+     "max_abs_err_vs_formula": 3.2862601528904634e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.572452707426041e-15,
+     "class": "correct"
+    },
+    "q0_eps0.001_k50_clamp": {
+     "cls": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q0_eps0.001_k1000_clamp": {
+     "cls": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q1_eps0.001_k50_clamp": {
+     "cls": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q1_eps0.001_k1000_clamp": {
+     "cls": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q2_eps0.001_k50_clamp": {
+     "cls": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q2_eps0.001_k1000_clamp": {
+     "cls": "error",
+     "error": "DivisionByZero: division by zero"
+    },
+    "q0_eps0.001_k50_clamp_nullif": {
+     "rows": 459865,
+     "formula_nan_rows": 21603,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.832169125046319e-16,
+     "max_abs_err_vs_formula": 4.440892098500626e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 24175,
+     "max_rel_err_vs_true": 0.11075645409856573,
+     "class": "correct"
+    },
+    "q0_eps0.001_k1000_clamp_nullif": {
+     "rows": 459865,
+     "formula_nan_rows": 549,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.921189469037852e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 550,
+     "max_rel_err_vs_true": 3.944326056992555e-05,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50_clamp_nullif": {
+     "rows": 459865,
+     "formula_nan_rows": 118234,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.659376921615726e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 125505,
+     "max_rel_err_vs_true": 0.37645480588300606,
+     "class": "correct"
+    },
+    "q1_eps0.001_k1000_clamp_nullif": {
+     "rows": 459865,
+     "formula_nan_rows": 950,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.117684379866986e-16,
+     "max_abs_err_vs_formula": 4.440892098500626e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 1028,
+     "max_rel_err_vs_true": 0.009674325828413296,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50_clamp_nullif": {
+     "rows": 459865,
+     "formula_nan_rows": 216311,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 4.17966928848062e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 219910,
+     "max_rel_err_vs_true": 0.1983244272285175,
+     "class": "correct"
+    },
+    "q2_eps0.001_k1000_clamp_nullif": {
+     "rows": 459865,
+     "formula_nan_rows": 2787,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.730183352790611e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 3130,
+     "max_rel_err_vs_true": 0.010719215050009839,
+     "class": "correct"
+    },
+    "q0_eps0.001_k50_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 21603,
+     "finite_where_formula_undefined": 19464,
+     "host_nan_rows": 4254,
+     "host_wrong_rows": 325904,
+     "max_rel_err_vs_formula": 2.853760372204973e+88,
+     "max_abs_err_vs_formula": 2.0261697689028075e+89,
+     "out_of_range_rows": 81273,
+     "worst": {
+      "id": 102096,
+      "value": -2.0261697689028075e+89,
+      "formula_ref": 7.0999996658348605,
+      "true_ref": 7.0999996658348605
+     },
+     "user_wrong_rows": 351797,
+     "max_rel_err_vs_true": 2.853760372204973e+88,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.001_k1000_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 549,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 285,
+     "host_wrong_rows": 262065,
+     "max_rel_err_vs_formula": 6.477589747529817e+89,
+     "max_abs_err_vs_formula": 4.404755168509295e+90,
+     "out_of_range_rows": 73702,
+     "worst": {
+      "id": 172643,
+      "value": 4.404755168509295e+90,
+      "formula_ref": 6.799990953717032,
+      "true_ref": 6.799990953717032
+     },
+     "user_wrong_rows": 262900,
+     "max_rel_err_vs_true": 6.477589747529817e+89,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.02_k50_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 6591,
+     "max_rel_err_vs_formula": 1.5975255270599953,
+     "max_abs_err_vs_formula": 10.016215012154138,
+     "out_of_range_rows": 9,
+     "worst": {
+      "id": 284643,
+      "value": 16.28604597415915,
+      "formula_ref": 6.269830962005014,
+      "true_ref": 6.269830962005013
+     },
+     "user_wrong_rows": 6591,
+     "max_rel_err_vs_true": 1.5975255270599955,
+     "class": "wrong-finite"
+    },
+    "q0_eps0.02_k1000_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 1903,
+     "max_rel_err_vs_formula": 6.561476066443456e-06,
+     "max_abs_err_vs_formula": 3.696193751601129e-05,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 267111,
+      "value": 5.633211135206416,
+      "formula_ref": 5.6331741732689,
+      "true_ref": 5.633174173268901
+     },
+     "user_wrong_rows": 1903,
+     "max_rel_err_vs_true": 6.5614760662857855e-06,
+     "class": "wrong-finite"
+    },
+    "q0_eps0.1_k50_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.935343653494388e-14,
+     "max_abs_err_vs_formula": 4.707345624410664e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.966462648213972e-14,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.446324556661445e-14,
+     "max_abs_err_vs_formula": 4.369837824924616e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 6.447834775931319e-14,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 118234,
+     "finite_where_formula_undefined": 88855,
+     "host_nan_rows": 5522,
+     "host_wrong_rows": 227828,
+     "max_rel_err_vs_formula": 1.844894915711648e+61,
+     "max_abs_err_vs_formula": 9.039985086987076e+61,
+     "out_of_range_rows": 124522,
+     "worst": {
+      "id": 394767,
+      "value": -9.039985086987076e+61,
+      "formula_ref": 4.9,
+      "true_ref": 4.900134351162608
+     },
+     "user_wrong_rows": 351904,
+     "max_rel_err_vs_true": 1.844894915711648e+61,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.001_k1000_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 950,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 817,
+     "host_wrong_rows": 286193,
+     "max_rel_err_vs_formula": 2.325366650692922e+48,
+     "max_abs_err_vs_formula": 1.2326456843385402e+49,
+     "out_of_range_rows": 80462,
+     "worst": {
+      "id": 387065,
+      "value": 1.2326456843385402e+49,
+      "formula_ref": 5.300865925686307,
+      "true_ref": 5.300865925686308
+     },
+     "user_wrong_rows": 288038,
+     "max_rel_err_vs_true": 2.3253666506929212e+48,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.02_k50_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 7043,
+     "max_rel_err_vs_formula": 0.04361921117863578,
+     "max_abs_err_vs_formula": 0.2609982998120097,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 181573,
+      "value": 6.2445613391143775,
+      "formula_ref": 5.983563039302368,
+      "true_ref": 5.983563039302364
+     },
+     "user_wrong_rows": 7043,
+     "max_rel_err_vs_true": 0.0436192111786364,
+     "class": "wrong-finite"
+    },
+    "q1_eps0.02_k1000_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 5233,
+     "max_rel_err_vs_formula": 4.770258533130071e-05,
+     "max_abs_err_vs_formula": 0.0003053095677270079,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 198449,
+      "value": 6.4005782844304715,
+      "formula_ref": 6.4002729748627445,
+      "true_ref": 6.400272974862743
+     },
+     "user_wrong_rows": 5233,
+     "max_rel_err_vs_true": 4.770258533157826e-05,
+     "class": "wrong-finite"
+    },
+    "q1_eps0.1_k50_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.976668314078676e-14,
+     "max_abs_err_vs_formula": 5.133671265866724e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.992198882096115e-14,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.6786335661345485e-14,
+     "max_abs_err_vs_formula": 3.801403636316536e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.6786335661345485e-14,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 216311,
+     "finite_where_formula_undefined": 135191,
+     "host_nan_rows": 9235,
+     "host_wrong_rows": 104401,
+     "max_rel_err_vs_formula": 4.3163228850639235e+58,
+     "max_abs_err_vs_formula": 2.8919363329928288e+59,
+     "out_of_range_rows": 44643,
+     "worst": {
+      "id": 312619,
+      "value": -2.8919363329928288e+59,
+      "formula_ref": 6.7,
+      "true_ref": 6.7
+     },
+     "user_wrong_rows": 329537,
+     "max_rel_err_vs_true": 4.3163228850639235e+58,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.001_k1000_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 2787,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 2995,
+     "host_wrong_rows": 248078,
+     "max_rel_err_vs_formula": 10367132.016924232,
+     "max_abs_err_vs_formula": 77753489.96698388,
+     "out_of_range_rows": 21651,
+     "worst": {
+      "id": 216135,
+      "value": 77753497.46698387,
+      "formula_ref": 7.499999984571639,
+      "true_ref": 7.49999998457164
+     },
+     "user_wrong_rows": 253860,
+     "max_rel_err_vs_true": 10367132.01692423,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.02_k50_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 105675,
+     "max_rel_err_vs_formula": 4589.367563040175,
+     "max_abs_err_vs_formula": 35463.897863130755,
+     "out_of_range_rows": 485,
+     "worst": {
+      "id": 269623,
+      "value": 35471.625267261275,
+      "formula_ref": 7.72740413052427,
+      "true_ref": 7.727404130524269
+     },
+     "user_wrong_rows": 105675,
+     "max_rel_err_vs_true": 4589.367563040176,
+     "class": "wrong-finite"
+    },
+    "q2_eps0.02_k1000_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 5197,
+     "max_rel_err_vs_formula": 0.007181059783416494,
+     "max_abs_err_vs_formula": 0.04208389799196777,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 278269,
+      "value": 5.818318223872242,
+      "formula_ref": 5.86040212186421,
+      "true_ref": 5.86040212186421
+     },
+     "user_wrong_rows": 5197,
+     "max_rel_err_vs_true": 0.007181059783416494,
+     "class": "wrong-finite"
+    },
+    "q2_eps0.1_k50_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.2236955922783896e-13,
+     "max_abs_err_vs_formula": 6.110667527536862e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.2218386945662825e-13,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000_unsafe_sum": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.3558232333148655e-14,
+     "max_abs_err_vs_formula": 2.8066438062523957e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.3558232333148655e-14,
+     "class": "correct"
+    },
+    "q0_eps0.001_k50_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 21603,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.77477474884461e-15,
+     "max_abs_err_vs_formula": 7.283063041541027e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 24175,
+     "max_rel_err_vs_true": 0.11075645409856912,
+     "class": "correct"
+    },
+    "q0_eps0.001_k1000_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 549,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.554621052733855e-15,
+     "max_abs_err_vs_formula": 6.572520305780927e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 550,
+     "max_rel_err_vs_true": 3.944326057105592e-05,
+     "class": "correct"
+    },
+    "q0_eps0.02_k50_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.891524587393261e-15,
+     "max_abs_err_vs_formula": 6.572520305780927e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.27487430156373e-15,
+     "class": "correct"
+    },
+    "q0_eps0.02_k1000_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.4555838228204344e-15,
+     "max_abs_err_vs_formula": 3.730349362740526e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.4566067246022476e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k50_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.398731570726252e-15,
+     "max_abs_err_vs_formula": 2.842170943040401e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.398731570726252e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.398731570726252e-15,
+     "max_abs_err_vs_formula": 2.842170943040401e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.398731570726252e-15,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 118234,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.670631806501082e-15,
+     "max_abs_err_vs_formula": 5.3290705182007514e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 125505,
+     "max_rel_err_vs_true": 0.37645480588301133,
+     "class": "correct"
+    },
+    "q1_eps0.001_k1000_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 950,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.877651306839064e-15,
+     "max_abs_err_vs_formula": 4.1744385725905886e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 1028,
+     "max_rel_err_vs_true": 0.009674325828410064,
+     "class": "correct"
+    },
+    "q1_eps0.02_k50_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.890410653862019e-15,
+     "max_abs_err_vs_formula": 6.217248937900877e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.977082169572752e-15,
+     "class": "correct"
+    },
+    "q1_eps0.02_k1000_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.584660592710552e-15,
+     "max_abs_err_vs_formula": 5.950795411990839e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.805799578668486e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k50_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 3.47548077273962e-15,
+     "max_abs_err_vs_formula": 2.398081733190338e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.47548077273962e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 3.47548077273962e-15,
+     "max_abs_err_vs_formula": 2.398081733190338e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.47548077273962e-15,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 216311,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.104771744227279e-15,
+     "max_abs_err_vs_formula": 6.572520305780927e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 219910,
+     "max_rel_err_vs_true": 0.1983244272285152,
+     "class": "correct"
+    },
+    "q2_eps0.001_k1000_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 2787,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.761616356426744e-15,
+     "max_abs_err_vs_formula": 5.684341886080802e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 3130,
+     "max_rel_err_vs_true": 0.010719215050005282,
+     "class": "correct"
+    },
+    "q2_eps0.02_k50_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.774711747545513e-15,
+     "max_abs_err_vs_formula": 6.217248937900877e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.771703812956361e-15,
+     "class": "correct"
+    },
+    "q2_eps0.02_k1000_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.691806939711869e-15,
+     "max_abs_err_vs_formula": 4.973799150320701e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 6.4484685055405306e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k50_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 4.605369583630279e-15,
+     "max_abs_err_vs_formula": 3.108624468950438e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 4.605369583630279e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000_numeric": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 4.605369583630279e-15,
+     "max_abs_err_vs_formula": 3.108624468950438e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 4.605369583630279e-15,
+     "class": "correct"
+    }
+   },
+   "minimal_graded": {
+    "one_large": {
+     "exact": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "SUM": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     },
+     "unsafe_sum": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       1.0,
+       1.0
+      ],
+      "ok": false
+     }
+    },
+    "two_large": {
+     "exact": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "SUM": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     },
+     "unsafe_sum": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       1.0,
+       -1e+20,
+       -1e+20
+      ],
+      "ok": false
+     }
+    }
+   }
+  },
+  "spark": {
+   "engine": "spark",
+   "version": {
+    "engine": "Apache Spark SQL (local[8])",
+    "version": "3.5.9",
+    "java": "openjdk version \"1.8.0_452\"",
+    "ansi": "false"
+   },
+   "cells": {
+    "q0_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 3.07
+    },
+    "q0_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 5.91
+    },
+    "q0_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 1.16
+    },
+    "q0_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 5.68
+    },
+    "q0_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 1.03
+    },
+    "q0_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 5.39
+    },
+    "q1_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 1.25
+    },
+    "q1_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 6.51
+    },
+    "q1_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.95
+    },
+    "q1_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 5.27
+    },
+    "q1_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.87
+    },
+    "q1_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 5.13
+    },
+    "q2_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 1.14
+    },
+    "q2_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 5.0
+    },
+    "q2_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.77
+    },
+    "q2_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 5.4
+    },
+    "q2_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.89
+    },
+    "q2_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 5.29
+    }
+   },
+   "sql": {
+    "q0_eps0.001_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       sum(w * rating) OVER win / sum(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp((s0 - 1.0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id"
+   },
+   "minimal": {
+    "one_large": [
+     1.0,
+     2.0,
+     1e+20,
+     1e+20,
+     1e+20,
+     3.0,
+     3.0
+    ],
+    "two_large": [
+     1.0,
+     1e+40,
+     1e+40,
+     1e+40,
+     1e+20,
+     3.0,
+     3.0
+    ]
+   },
+   "graded": {
+    "q0_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 2487,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1460303414754201e-15,
+     "max_abs_err_vs_formula": 7.105427357601002e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 4452,
+     "max_rel_err_vs_true": 0.1654006116178461,
+     "class": "correct"
+    },
+    "q0_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 251,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.921189469037852e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 286,
+     "max_rel_err_vs_true": 0.0023529411764785547,
+     "class": "correct"
+    },
+    "q0_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.8370967316070895e-15,
+     "max_abs_err_vs_formula": 1.4210854715202004e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.262405785368512e-15,
+     "class": "correct"
+    },
+    "q0_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.177591683574642e-15,
+     "max_abs_err_vs_formula": 4.263256414560601e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 6.4937120707288696e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.5076341234344579e-15,
+     "max_abs_err_vs_formula": 9.769962616701378e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.7553036805495673e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.4546867337096784e-15,
+     "max_abs_err_vs_formula": 3.730349362740526e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.4546867337096784e-15,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 22403,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1491331196329957e-15,
+     "max_abs_err_vs_formula": 7.105427357601002e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 36696,
+     "max_rel_err_vs_true": 0.33324183433121335,
+     "class": "correct"
+    },
+    "q1_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 389,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.117684379866986e-16,
+     "max_abs_err_vs_formula": 4.440892098500626e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 458,
+     "max_rel_err_vs_true": 0.00017792340981236733,
+     "class": "correct"
+    },
+    "q1_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.963841853869401e-15,
+     "max_abs_err_vs_formula": 1.3322676295501878e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.768398411457153e-15,
+     "class": "correct"
+    },
+    "q1_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.949108489687889e-15,
+     "max_abs_err_vs_formula": 4.263256414560601e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 6.279620625229623e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.3596161878246313e-15,
+     "max_abs_err_vs_formula": 8.881784197001252e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.5557793883936821e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.575405065845253e-15,
+     "max_abs_err_vs_formula": 3.730349362740526e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.554975013431865e-15,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 89842,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 2.9067731557136915e-15,
+     "max_abs_err_vs_formula": 1.5987211554602254e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 116298,
+     "max_rel_err_vs_true": 0.4677940009217499,
+     "class": "correct"
+    },
+    "q2_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 871,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.730183352790611e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 1545,
+     "max_rel_err_vs_true": 0.0033160533198137382,
+     "class": "correct"
+    },
+    "q2_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.9183956305201313e-15,
+     "max_abs_err_vs_formula": 1.4210854715202004e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.2154214430986332e-15,
+     "class": "correct"
+    },
+    "q2_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.019003344145323e-15,
+     "max_abs_err_vs_formula": 5.773159728050814e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.63586133179479e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.4885329436901714e-15,
+     "max_abs_err_vs_formula": 1.0658141036401503e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.6133485422629133e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.727243060410096e-15,
+     "max_abs_err_vs_formula": 3.2862601528904634e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.584085233271959e-15,
+     "class": "correct"
+    }
+   },
+   "minimal_graded": {
+    "one_large": {
+     "exact": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    },
+    "two_large": {
+     "exact": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    }
+   }
+  },
+  "sqlite_apsw": {
+   "engine": "sqlite_apsw",
+   "version": {
+    "engine": "SQLite",
+    "version": "3.54.0",
+    "binding": "apsw 3.54.0.0 (bundled SQLite)"
+   },
+   "cells": {
+    "q0_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.75
+    },
+    "q0_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.82
+    },
+    "q0_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.77
+    },
+    "q0_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.85
+    },
+    "q0_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.78
+    },
+    "q0_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.86
+    },
+    "q1_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.84
+    },
+    "q1_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.88
+    },
+    "q1_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.82
+    },
+    "q1_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.87
+    },
+    "q1_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.82
+    },
+    "q1_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.87
+    },
+    "q2_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 0.81
+    },
+    "q2_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 0.87
+    },
+    "q2_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 0.81
+    },
+    "q2_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 0.9
+    },
+    "q2_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 0.86
+    },
+    "q2_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 0.89
+    }
+   },
+   "sql": {
+    "q0_eps0.001_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id"
+   },
+   "minimal": {
+    "one_large": [
+     1.0,
+     2.0,
+     1e+20,
+     1e+20,
+     1e+20,
+     3.0,
+     3.0
+    ],
+    "two_large": [
+     1.0,
+     1e+40,
+     1e+40,
+     1e+40,
+     1e+20,
+     0.0,
+     0.0
+    ]
+   },
+   "graded": {
+    "q0_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 2487,
+     "finite_where_formula_undefined": 1715,
+     "host_nan_rows": 98605,
+     "host_wrong_rows": 263006,
+     "max_rel_err_vs_formula": 2.4942048856804475e+53,
+     "max_abs_err_vs_formula": 1.589952963850809e+54,
+     "out_of_range_rows": 54530,
+     "worst": {
+      "id": 26750,
+      "value": 1.589952963850809e+54,
+      "formula_ref": 6.374588442909941,
+      "true_ref": 6.3745884429099675
+     },
+     "user_wrong_rows": 364133,
+     "max_rel_err_vs_true": 2.494204885680437e+53,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 251,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 13912,
+     "host_wrong_rows": 188370,
+     "max_rel_err_vs_formula": 341.8604751210482,
+     "max_abs_err_vs_formula": 2427.174074074074,
+     "out_of_range_rows": 42294,
+     "worst": {
+      "id": 281157,
+      "value": -2420.074074074074,
+      "formula_ref": 7.099896440661372,
+      "true_ref": 7.099896440661372
+     },
+     "user_wrong_rows": 202568,
+     "max_rel_err_vs_true": 341.8604751210482,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.049442889118674e-15,
+     "max_abs_err_vs_formula": 8.881784197001252e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.880315474089824e-15,
+     "class": "correct"
+    },
+    "q0_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.3423242472053694e-15,
+     "max_abs_err_vs_formula": 9.769962616701378e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.3375576509682235e-15,
+     "class": "correct"
+    },
+    "q0_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.768136585491653e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.893979447978602e-16,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.264610034116501e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.264610034116501e-16,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 22403,
+     "finite_where_formula_undefined": 15974,
+     "host_nan_rows": 115814,
+     "host_wrong_rows": 226235,
+     "max_rel_err_vs_formula": 2.374480831576699e+52,
+     "max_abs_err_vs_formula": 1.6612012210557975e+53,
+     "out_of_range_rows": 104923,
+     "worst": {
+      "id": 341785,
+      "value": 8.310682910518446e+52,
+      "formula_ref": 3.5,
+      "true_ref": 3.654732227727107
+     },
+     "user_wrong_rows": 364540,
+     "max_rel_err_vs_true": 2.2739512480472185e+52,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 389,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 57493,
+     "host_wrong_rows": 159663,
+     "max_rel_err_vs_formula": 46.13959118930323,
+     "max_abs_err_vs_formula": 123.15297043171863,
+     "out_of_range_rows": 90198,
+     "worst": {
+      "id": 190124,
+      "value": 103.72160132011754,
+      "formula_ref": 2.200307611994177,
+      "true_ref": 2.2003076119941767
+     },
+     "user_wrong_rows": 217614,
+     "max_rel_err_vs_true": 46.139591189303246,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.0767228031639556e-15,
+     "max_abs_err_vs_formula": 7.993605777301127e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.8944156875398125e-15,
+     "class": "correct"
+    },
+    "q1_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.1323903588182822e-15,
+     "max_abs_err_vs_formula": 7.993605777301127e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.542217062565143e-15,
+     "class": "correct"
+    },
+    "q1_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.20431565575312e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.777911427159079e-16,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.301090439811435e-16,
+     "max_abs_err_vs_formula": 3.552713678800501e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 6.556738216159579e-16,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 89842,
+     "finite_where_formula_undefined": 56905,
+     "host_nan_rows": 74228,
+     "host_wrong_rows": 166707,
+     "max_rel_err_vs_formula": 8.503282253561617e+48,
+     "max_abs_err_vs_formula": 6.235740319278519e+49,
+     "out_of_range_rows": 64650,
+     "worst": {
+      "id": 367703,
+      "value": 6.235740319278519e+49,
+      "formula_ref": 7.333333333333333,
+      "true_ref": 7.4
+     },
+     "user_wrong_rows": 332797,
+     "max_rel_err_vs_true": 8.426676107133134e+48,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 871,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 92829,
+     "host_wrong_rows": 125393,
+     "max_rel_err_vs_formula": 31.791308110187007,
+     "max_abs_err_vs_formula": 157.02584275283178,
+     "out_of_range_rows": 29494,
+     "worst": {
+      "id": 101689,
+      "value": 72.14087784241143,
+      "formula_ref": 2.2,
+      "true_ref": 2.2
+     },
+     "user_wrong_rows": 219767,
+     "max_rel_err_vs_true": 31.791308110187007,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 3.1792756803187083e-15,
+     "max_abs_err_vs_formula": 1.687538997430238e-14,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 3.2081782524912534e-15,
+     "class": "correct"
+    },
+    "q2_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.2782304996952664e-15,
+     "max_abs_err_vs_formula": 9.769962616701378e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 2.9184413507521358e-15,
+     "class": "correct"
+    },
+    "q2_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.777882558156546e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.249148300383736e-16,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 9.662260149192917e-16,
+     "max_abs_err_vs_formula": 5.329070518200751e-15,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 9.662260149192917e-16,
+     "class": "correct"
+    }
+   },
+   "minimal_graded": {
+    "one_large": {
+     "exact": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       3.0,
+       3.0
+      ],
+      "ok": true
+     }
+    },
+    "two_large": {
+     "exact": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       1e+20,
+       0.0,
+       0.0
+      ],
+      "ok": false
+     }
+    }
+   }
+  },
+  "sqlite_stdlib": {
+   "engine": "sqlite_stdlib",
+   "version": {
+    "engine": "SQLite",
+    "version": "3.37.2",
+    "binding": "Python 3.10.12 sqlite3"
+   },
+   "cells": {
+    "q0_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 1.12
+    },
+    "q0_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 1.16
+    },
+    "q0_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 1.08
+    },
+    "q0_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 1.14
+    },
+    "q0_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 1.11
+    },
+    "q0_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 1.18
+    },
+    "q1_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 1.14
+    },
+    "q1_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 1.22
+    },
+    "q1_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 1.15
+    },
+    "q1_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 1.2
+    },
+    "q1_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 1.15
+    },
+    "q1_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 1.19
+    },
+    "q2_eps0.001_k50": {
+     "status": "ok",
+     "seconds": 1.15
+    },
+    "q2_eps0.001_k1000": {
+     "status": "ok",
+     "seconds": 1.21
+    },
+    "q2_eps0.02_k50": {
+     "status": "ok",
+     "seconds": 1.14
+    },
+    "q2_eps0.02_k1000": {
+     "status": "ok",
+     "seconds": 1.17
+    },
+    "q2_eps0.1_k50": {
+     "status": "ok",
+     "seconds": 1.13
+    },
+    "q2_eps0.1_k1000": {
+     "status": "ok",
+     "seconds": 1.2
+    }
+   },
+   "sql": {
+    "q0_eps0.001_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.001_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.001) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.02_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.02) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k50": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 49 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id",
+    "q0_eps0.1_k1000": "SELECT id,\n       category,\n       ts,\n       rating,\n       SUM(w * rating) OVER win / SUM(w) OVER win AS rolling_weighted_avg_rating\nFROM (\n    SELECT id,\n           category,\n           ts,\n           rating,\n           exp(-(1.0 - s0) / 0.1) AS w\n    FROM reviews\n) s\nWINDOW win AS (\n    PARTITION BY category\n    ORDER BY ts, id\n    ROWS BETWEEN 999 PRECEDING AND CURRENT ROW\n)\nORDER BY category, ts, id"
+   },
+   "minimal": {
+    "one_large": [
+     1.0,
+     2.0,
+     1e+20,
+     1e+20,
+     1e+20,
+     1.0,
+     1.0
+    ],
+    "two_large": [
+     1.0,
+     1e+40,
+     1e+40,
+     1e+40,
+     1.0,
+     -1e+20,
+     -1e+20
+    ]
+   },
+   "graded": {
+    "q0_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 2487,
+     "finite_where_formula_undefined": 2117,
+     "host_nan_rows": 2383,
+     "host_wrong_rows": 346391,
+     "max_rel_err_vs_formula": 4.983644737905366e+107,
+     "max_abs_err_vs_formula": 6.478738159376092e+107,
+     "out_of_range_rows": 81496,
+     "worst": {
+      "id": 104057,
+      "value": 6.478738159376092e+107,
+      "formula_ref": 1.3000000000198881,
+      "true_ref": 1.3000000000198884
+     },
+     "user_wrong_rows": 351300,
+     "max_rel_err_vs_true": 4.9836447379053654e+107,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 251,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 126,
+     "host_wrong_rows": 262224,
+     "max_rel_err_vs_formula": 6.477589747529817e+89,
+     "max_abs_err_vs_formula": 4.404755168509295e+90,
+     "out_of_range_rows": 73737,
+     "worst": {
+      "id": 172643,
+      "value": 4.404755168509295e+90,
+      "formula_ref": 6.799990953717032,
+      "true_ref": 6.799990953717032
+     },
+     "user_wrong_rows": 262636,
+     "max_rel_err_vs_true": 6.477589747529817e+89,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q0_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 6591,
+     "max_rel_err_vs_formula": 1.5975255270599953,
+     "max_abs_err_vs_formula": 10.016215012154138,
+     "out_of_range_rows": 9,
+     "worst": {
+      "id": 284643,
+      "value": 16.28604597415915,
+      "formula_ref": 6.269830962005014,
+      "true_ref": 6.269830962005013
+     },
+     "user_wrong_rows": 6591,
+     "max_rel_err_vs_true": 1.5975255270599955,
+     "class": "wrong-finite"
+    },
+    "q0_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 1903,
+     "max_rel_err_vs_formula": 6.561476066443456e-06,
+     "max_abs_err_vs_formula": 3.696193751601129e-05,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 267111,
+      "value": 5.633211135206416,
+      "formula_ref": 5.6331741732689,
+      "true_ref": 5.633174173268901
+     },
+     "user_wrong_rows": 1903,
+     "max_rel_err_vs_true": 6.5614760662857855e-06,
+     "class": "wrong-finite"
+    },
+    "q0_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 7.935343653494388e-14,
+     "max_abs_err_vs_formula": 4.707345624410664e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 7.966462648213972e-14,
+     "class": "correct"
+    },
+    "q0_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 6.446324556661445e-14,
+     "max_abs_err_vs_formula": 4.369837824924616e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 6.447834775931319e-14,
+     "class": "correct"
+    },
+    "q1_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 22403,
+     "finite_where_formula_undefined": 20256,
+     "host_nan_rows": 5366,
+     "host_wrong_rows": 317107,
+     "max_rel_err_vs_formula": 1.286194976314704e+81,
+     "max_abs_err_vs_formula": 7.588550360256754e+81,
+     "out_of_range_rows": 127071,
+     "worst": {
+      "id": 397644,
+      "value": -7.588550360256754e+81,
+      "formula_ref": 5.9,
+      "true_ref": 5.900000000000001
+     },
+     "user_wrong_rows": 345125,
+     "max_rel_err_vs_true": 1.2861949763147038e+81,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 389,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 258,
+     "host_wrong_rows": 286747,
+     "max_rel_err_vs_formula": 1.4315680620188973e+81,
+     "max_abs_err_vs_formula": 7.588550360256754e+81,
+     "out_of_range_rows": 80551,
+     "worst": {
+      "id": 387000,
+      "value": 7.588550360256754e+81,
+      "formula_ref": 5.300865925686307,
+      "true_ref": 5.300865925686309
+     },
+     "user_wrong_rows": 287463,
+     "max_rel_err_vs_true": 1.4315680620188966e+81,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q1_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 7043,
+     "max_rel_err_vs_formula": 0.04361921117863578,
+     "max_abs_err_vs_formula": 0.2609982998120097,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 181573,
+      "value": 6.2445613391143775,
+      "formula_ref": 5.983563039302368,
+      "true_ref": 5.983563039302364
+     },
+     "user_wrong_rows": 7043,
+     "max_rel_err_vs_true": 0.0436192111786364,
+     "class": "wrong-finite"
+    },
+    "q1_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 5233,
+     "max_rel_err_vs_formula": 4.770258533130071e-05,
+     "max_abs_err_vs_formula": 0.0003053095677270079,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 198449,
+      "value": 6.4005782844304715,
+      "formula_ref": 6.4002729748627445,
+      "true_ref": 6.400272974862743
+     },
+     "user_wrong_rows": 5233,
+     "max_rel_err_vs_true": 4.770258533157826e-05,
+     "class": "wrong-finite"
+    },
+    "q1_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 8.976668314078676e-14,
+     "max_abs_err_vs_formula": 5.133671265866724e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 8.992198882096115e-14,
+     "class": "correct"
+    },
+    "q1_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.6786335661345485e-14,
+     "max_abs_err_vs_formula": 3.801403636316536e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.6786335661345485e-14,
+     "class": "correct"
+    },
+    "q2_eps0.001_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 89842,
+     "finite_where_formula_undefined": 69776,
+     "host_nan_rows": 11738,
+     "host_wrong_rows": 209166,
+     "max_rel_err_vs_formula": 2.7606985387162255e+70,
+     "max_abs_err_vs_formula": 8.282095616148677e+70,
+     "out_of_range_rows": 46275,
+     "worst": {
+      "id": 137921,
+      "value": -8.282095616148677e+70,
+      "formula_ref": 3.0,
+      "true_ref": 3.2000000038718572
+     },
+     "user_wrong_rows": 313579,
+     "max_rel_err_vs_true": 2.5881548769149095e+70,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.001_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 871,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 966,
+     "host_wrong_rows": 250107,
+     "max_rel_err_vs_formula": 10367132.016924232,
+     "max_abs_err_vs_formula": 77753489.96698388,
+     "out_of_range_rows": 21812,
+     "worst": {
+      "id": 216135,
+      "value": 77753497.46698387,
+      "formula_ref": 7.499999984571639,
+      "true_ref": 7.49999998457164
+     },
+     "user_wrong_rows": 252618,
+     "max_rel_err_vs_true": 10367132.01692423,
+     "class": "wrong-finite+NaN/NULL"
+    },
+    "q2_eps0.02_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 105675,
+     "max_rel_err_vs_formula": 4589.367563040175,
+     "max_abs_err_vs_formula": 35463.897863130755,
+     "out_of_range_rows": 485,
+     "worst": {
+      "id": 269623,
+      "value": 35471.625267261275,
+      "formula_ref": 7.72740413052427,
+      "true_ref": 7.727404130524269
+     },
+     "user_wrong_rows": 105675,
+     "max_rel_err_vs_true": 4589.367563040176,
+     "class": "wrong-finite"
+    },
+    "q2_eps0.02_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 5197,
+     "max_rel_err_vs_formula": 0.007181059783416494,
+     "max_abs_err_vs_formula": 0.04208389799196777,
+     "out_of_range_rows": 0,
+     "worst": {
+      "id": 278269,
+      "value": 5.818318223872242,
+      "formula_ref": 5.86040212186421,
+      "true_ref": 5.86040212186421
+     },
+     "user_wrong_rows": 5197,
+     "max_rel_err_vs_true": 0.007181059783416494,
+     "class": "wrong-finite"
+    },
+    "q2_eps0.1_k50": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 1.2236955922783896e-13,
+     "max_abs_err_vs_formula": 6.110667527536862e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 1.2218386945662825e-13,
+     "class": "correct"
+    },
+    "q2_eps0.1_k1000": {
+     "rows": 459865,
+     "formula_nan_rows": 0,
+     "finite_where_formula_undefined": 0,
+     "host_nan_rows": 0,
+     "host_wrong_rows": 0,
+     "max_rel_err_vs_formula": 5.3558232333148655e-14,
+     "max_abs_err_vs_formula": 2.8066438062523957e-13,
+     "out_of_range_rows": 0,
+     "worst": null,
+     "user_wrong_rows": 0,
+     "max_rel_err_vs_true": 5.3558232333148655e-14,
+     "class": "correct"
+    }
+   },
+   "minimal_graded": {
+    "one_large": {
+     "exact": [
+      1.0,
+      2.0,
+      1e+20,
+      1e+20,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       2.0,
+       1e+20,
+       1e+20,
+       1e+20,
+       1.0,
+       1.0
+      ],
+      "ok": false
+     }
+    },
+    "two_large": {
+     "exact": [
+      1.0,
+      1e+40,
+      1e+40,
+      1e+40,
+      1e+20,
+      3.0,
+      3.0
+     ],
+     "default": {
+      "outputs": [
+       1.0,
+       1e+40,
+       1e+40,
+       1e+40,
+       1.0,
+       -1e+20,
+       -1e+20
+      ],
+      "ok": false
+     }
+    }
+   }
+  }
+ },
+ "numpy_add_subtract_emulation": {
+  "q0_eps0.001_k50": {
+   "rows": 459865,
+   "formula_nan_rows": 2487,
+   "finite_where_formula_undefined": 2117,
+   "host_nan_rows": 2840,
+   "host_wrong_rows": 346789,
+   "max_rel_err_vs_formula": 4.983644737905366e+107,
+   "max_abs_err_vs_formula": 6.478738159376092e+107,
+   "out_of_range_rows": 82234,
+   "worst": {
+    "id": 104057,
+    "value": 6.478738159376092e+107,
+    "formula_ref": 1.3000000000198881,
+    "true_ref": 1.3000000000198884
+   },
+   "user_wrong_rows": 352155,
+   "max_rel_err_vs_true": 4.9836447379053654e+107,
+   "class": "wrong-finite+NaN/NULL"
+  },
+  "q0_eps0.001_k1000": {
+   "rows": 459865,
+   "formula_nan_rows": 251,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 146,
+   "host_wrong_rows": 262204,
+   "max_rel_err_vs_formula": 6.477589747529817e+89,
+   "max_abs_err_vs_formula": 4.404755168509295e+90,
+   "out_of_range_rows": 73737,
+   "worst": {
+    "id": 172643,
+    "value": 4.404755168509295e+90,
+    "formula_ref": 6.799990953717032,
+    "true_ref": 6.799990953717032
+   },
+   "user_wrong_rows": 262636,
+   "max_rel_err_vs_true": 6.477589747529817e+89,
+   "class": "wrong-finite+NaN/NULL"
+  },
+  "q0_eps0.02_k50": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 6661,
+   "max_rel_err_vs_formula": 1.6061852163826495,
+   "max_abs_err_vs_formula": 10.07050980039066,
+   "out_of_range_rows": 9,
+   "worst": {
+    "id": 284643,
+    "value": 16.340340762395673,
+    "formula_ref": 6.269830962005014,
+    "true_ref": 6.269830962005013
+   },
+   "user_wrong_rows": 6661,
+   "max_rel_err_vs_true": 1.6061852163826498,
+   "class": "wrong-finite"
+  },
+  "q0_eps0.02_k1000": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 1903,
+   "max_rel_err_vs_formula": 6.561035534738845e-06,
+   "max_abs_err_vs_formula": 3.6959455924190365e-05,
+   "out_of_range_rows": 0,
+   "worst": {
+    "id": 267111,
+    "value": 5.633211132724824,
+    "formula_ref": 5.6331741732689,
+    "true_ref": 5.633174173268901
+   },
+   "user_wrong_rows": 1903,
+   "max_rel_err_vs_true": 6.561035534581174e-06,
+   "class": "wrong-finite"
+  },
+  "q0_eps0.1_k50": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 0,
+   "max_rel_err_vs_formula": 8.759997013563412e-14,
+   "max_abs_err_vs_formula": 5.231370892033738e-13,
+   "out_of_range_rows": 0,
+   "worst": null,
+   "user_wrong_rows": 0,
+   "max_rel_err_vs_true": 8.791116008282996e-14,
+   "class": "correct"
+  },
+  "q0_eps0.1_k1000": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 0,
+   "max_rel_err_vs_formula": 5.5946759871838155e-14,
+   "max_abs_err_vs_formula": 3.7925218521195347e-13,
+   "out_of_range_rows": 0,
+   "worst": null,
+   "user_wrong_rows": 0,
+   "max_rel_err_vs_true": 5.5959866856151896e-14,
+   "class": "correct"
+  },
+  "q1_eps0.001_k50": {
+   "rows": 459865,
+   "formula_nan_rows": 22403,
+   "finite_where_formula_undefined": 20312,
+   "host_nan_rows": 5762,
+   "host_wrong_rows": 318316,
+   "max_rel_err_vs_formula": 1.286194976314704e+81,
+   "max_abs_err_vs_formula": 7.588550360256754e+81,
+   "out_of_range_rows": 130236,
+   "worst": {
+    "id": 397644,
+    "value": -7.588550360256754e+81,
+    "formula_ref": 5.9,
+    "true_ref": 5.900000000000001
+   },
+   "user_wrong_rows": 346730,
+   "max_rel_err_vs_true": 1.2861949763147038e+81,
+   "class": "wrong-finite+NaN/NULL"
+  },
+  "q1_eps0.001_k1000": {
+   "rows": 459865,
+   "formula_nan_rows": 389,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 270,
+   "host_wrong_rows": 286735,
+   "max_rel_err_vs_formula": 1.4315680620188973e+81,
+   "max_abs_err_vs_formula": 7.588550360256754e+81,
+   "out_of_range_rows": 80552,
+   "worst": {
+    "id": 387000,
+    "value": 7.588550360256754e+81,
+    "formula_ref": 5.300865925686307,
+    "true_ref": 5.300865925686309
+   },
+   "user_wrong_rows": 287463,
+   "max_rel_err_vs_true": 1.4315680620188966e+81,
+   "class": "wrong-finite+NaN/NULL"
+  },
+  "q1_eps0.02_k50": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 7662,
+   "max_rel_err_vs_formula": 0.5706878956457753,
+   "max_abs_err_vs_formula": 3.4147469993633077,
+   "out_of_range_rows": 0,
+   "worst": {
+    "id": 181573,
+    "value": 9.398310038665675,
+    "formula_ref": 5.983563039302368,
+    "true_ref": 5.983563039302364
+   },
+   "user_wrong_rows": 7662,
+   "max_rel_err_vs_true": 0.5706878956457763,
+   "class": "wrong-finite"
+  },
+  "q1_eps0.02_k1000": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 5233,
+   "max_rel_err_vs_formula": 4.771271578451068e-05,
+   "max_abs_err_vs_formula": 0.00030537440539291083,
+   "out_of_range_rows": 0,
+   "worst": {
+    "id": 198449,
+    "value": 6.400578349268137,
+    "formula_ref": 6.4002729748627445,
+    "true_ref": 6.400272974862743
+   },
+   "user_wrong_rows": 5233,
+   "max_rel_err_vs_true": 4.7712715784788246e-05,
+   "class": "wrong-finite"
+  },
+  "q1_eps0.1_k50": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 0,
+   "max_rel_err_vs_formula": 1.2005129077478923e-13,
+   "max_abs_err_vs_formula": 6.865619184281968e-13,
+   "out_of_range_rows": 0,
+   "worst": null,
+   "user_wrong_rows": 0,
+   "max_rel_err_vs_true": 1.202065964549636e-13,
+   "class": "correct"
+  },
+  "q1_eps0.1_k1000": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 0,
+   "max_rel_err_vs_formula": 5.1346523133039023e-14,
+   "max_abs_err_vs_formula": 3.4372504842394846e-13,
+   "out_of_range_rows": 0,
+   "worst": null,
+   "user_wrong_rows": 0,
+   "max_rel_err_vs_true": 5.1346523133039023e-14,
+   "class": "correct"
+  },
+  "q2_eps0.001_k50": {
+   "rows": 459865,
+   "formula_nan_rows": 89842,
+   "finite_where_formula_undefined": 69984,
+   "host_nan_rows": 12136,
+   "host_wrong_rows": 210093,
+   "max_rel_err_vs_formula": 2.7606985387162255e+70,
+   "max_abs_err_vs_formula": 8.282095616148677e+70,
+   "out_of_range_rows": 46001,
+   "worst": {
+    "id": 137921,
+    "value": -8.282095616148677e+70,
+    "formula_ref": 3.0,
+    "true_ref": 3.2000000038718572
+   },
+   "user_wrong_rows": 314781,
+   "max_rel_err_vs_true": 2.5881548769149095e+70,
+   "class": "wrong-finite+NaN/NULL"
+  },
+  "q2_eps0.001_k1000": {
+   "rows": 459865,
+   "formula_nan_rows": 871,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 997,
+   "host_wrong_rows": 250076,
+   "max_rel_err_vs_formula": 10367132.016924232,
+   "max_abs_err_vs_formula": 77753489.96698388,
+   "out_of_range_rows": 21812,
+   "worst": {
+    "id": 216135,
+    "value": 77753497.46698387,
+    "formula_ref": 7.499999984571639,
+    "true_ref": 7.49999998457164
+   },
+   "user_wrong_rows": 252618,
+   "max_rel_err_vs_true": 10367132.01692423,
+   "class": "wrong-finite+NaN/NULL"
+  },
+  "q2_eps0.02_k50": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 104968,
+   "max_rel_err_vs_formula": 803.3648195685083,
+   "max_abs_err_vs_formula": 6202.755105872499,
+   "out_of_range_rows": 491,
+   "worst": {
+    "id": 269582,
+    "value": -6195.03413657588,
+    "formula_ref": 7.720969296619229,
+    "true_ref": 7.720969296619226
+   },
+   "user_wrong_rows": 104968,
+   "max_rel_err_vs_true": 803.3648195685086,
+   "class": "wrong-finite"
+  },
+  "q2_eps0.02_k1000": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 5207,
+   "max_rel_err_vs_formula": 0.0058593737385314185,
+   "max_abs_err_vs_formula": 0.03433828629008495,
+   "out_of_range_rows": 0,
+   "worst": {
+    "id": 278269,
+    "value": 5.826063835574125,
+    "formula_ref": 5.86040212186421,
+    "true_ref": 5.86040212186421
+   },
+   "user_wrong_rows": 5207,
+   "max_rel_err_vs_true": 0.0058593737385314185,
+   "class": "wrong-finite"
+  },
+  "q2_eps0.1_k50": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 0,
+   "max_rel_err_vs_formula": 1.3443939435653325e-13,
+   "max_abs_err_vs_formula": 6.634692795159935e-13,
+   "out_of_range_rows": 0,
+   "worst": null,
+   "user_wrong_rows": 0,
+   "max_rel_err_vs_true": 1.3425370458532252e-13,
+   "class": "correct"
+  },
+  "q2_eps0.1_k1000": {
+   "rows": 459865,
+   "formula_nan_rows": 0,
+   "finite_where_formula_undefined": 0,
+   "host_nan_rows": 0,
+   "host_wrong_rows": 0,
+   "max_rel_err_vs_formula": 5.828907095916029e-14,
+   "max_abs_err_vs_formula": 3.1086244689504383e-13,
+   "out_of_range_rows": 0,
+   "worst": null,
+   "user_wrong_rows": 0,
+   "max_rel_err_vs_true": 5.828907095916029e-14,
+   "class": "correct"
+  }
+ }
+}

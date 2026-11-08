@@ -1,0 +1,105 @@
+{
+ "sqlite": {
+  "sqlite": "3.37.2",
+  "sqlite_vec": "v0.1.9",
+  "math_functions": true,
+  "extensions_loaded": [
+   "sqlite-vec (vec0.so)"
+  ],
+  "ref_spread_vs_f64_cos": {
+   "T1_softmax_named": {
+    "f64_dot": 3.81646763494924e-06,
+    "sqlitevec_1-cosdist": 4.29732201109525e-05
+   },
+   "T2_exp_weight": {
+    "f64_dot": 3.81646763494924e-06,
+    "sqlitevec_1-cosdist": 4.29732201109525e-05
+   },
+   "T3_plain_language": {
+    "f64_dot": 6.7200856769094385e-06,
+    "sqlitevec_1-cosdist": 0.0002169558123266602
+   },
+   "T4_rolling_window": {
+    "f64_dot": 8.486786051807164e-07,
+    "sqlitevec_1-cosdist": 1.0800407395961977e-05
+   },
+   "T5_moderate_temp": {
+    "f64_dot": 2.2440837387494773e-08,
+    "sqlitevec_1-cosdist": 1.5288380612608685e-07
+   }
+  }
+ },
+ "postgresql": {
+  "server": "PostgreSQL 17.10 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0, 64-bit",
+  "pgvector": "0.8.7",
+  "build": "release",
+  "binary": "/home/jding/.pgrx/17.10/pg-release-install/bin/postgres",
+  "extensions_loaded": [
+   "vector"
+  ],
+  "ref_spread_vs_f64_cos": {
+   "T1_softmax_named": {
+    "f64_dot": 3.81646763494924e-06,
+    "pgvector_1-cosdist": 1.7567110273693917e-05,
+    "pgvector_-negip": 1.4881390550424217e-05
+   },
+   "T2_exp_weight": {
+    "f64_dot": 3.81646763494924e-06,
+    "pgvector_1-cosdist": 1.7567110273693917e-05,
+    "pgvector_-negip": 1.4881390550424217e-05
+   },
+   "T3_plain_language": {
+    "f64_dot": 6.7200856769094385e-06,
+    "pgvector_1-cosdist": 0.0001756805850030902,
+    "pgvector_-negip": 0.0001488219435075961
+   },
+   "T4_rolling_window": {
+    "f64_dot": 8.486786051807164e-07,
+    "pgvector_1-cosdist": 1.8501646576876596e-06,
+    "pgvector_-negip": 1.966741348490425e-06
+   },
+   "T5_moderate_temp": {
+    "f64_dot": 2.2440837387494773e-08,
+    "pgvector_1-cosdist": 3.2656402381847357e-08,
+    "pgvector_-negip": 4.7193181547782976e-08
+   }
+  }
+ },
+ "duckdb": {
+  "duckdb": "1.5.6",
+  "extensions_loaded": [
+   "core_functions",
+   "icu",
+   "json",
+   "parquet"
+  ],
+  "threads": 8,
+  "ref_spread_vs_f64_cos": {
+   "T1_softmax_named": {
+    "f64_dot": 3.81646763494924e-06,
+    "duckdb_array_cosine_similarity": 4.2973220145680985e-05,
+    "duckdb_array_inner_product": 5.651175266696793e-05
+   },
+   "T2_exp_weight": {
+    "f64_dot": 3.81646763494924e-06,
+    "duckdb_array_cosine_similarity": 4.2973220145680985e-05,
+    "duckdb_array_inner_product": 5.651175266696793e-05
+   },
+   "T3_plain_language": {
+    "f64_dot": 6.7200856769094385e-06,
+    "duckdb_array_cosine_similarity": 0.00016470184952797415,
+    "duckdb_array_inner_product": 0.00016470184952797415
+   },
+   "T4_rolling_window": {
+    "f64_dot": 8.486786051807164e-07,
+    "duckdb_array_cosine_similarity": 1.0265491136171577e-05,
+    "duckdb_array_inner_product": 8.860128282583732e-06
+   },
+   "T5_moderate_temp": {
+    "f64_dot": 2.2440837387494773e-08,
+    "duckdb_array_cosine_similarity": 1.4577488055654102e-07,
+    "duckdb_array_inner_product": 1.4189299538029058e-07
+   }
+  }
+ }
+}

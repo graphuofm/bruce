@@ -1,0 +1,24 @@
+[package]
+name = "softagg-sqlite"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "SQLite loadable extension: softavg(value, score, eps) aggregate + window function on softagg-core"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+softagg-core = { path = "../core" }
+# relF baseline states (experiments/anchored); not part of the softavg path
+relf-core = { path = "../relf_core" }
+libsqlite3-sys = { version = "0.37", features = ["loadable_extension"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
+# standalone: not part of any parent workspace
+[workspace]

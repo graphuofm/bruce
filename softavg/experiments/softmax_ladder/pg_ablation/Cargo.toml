@@ -1,0 +1,31 @@
+[package]
+name = "softavg_ablation"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Softmax-ladder ablation for PostgreSQL: softavg_s3 (MINVFUNC subtracts, never NULL, no certificate) and an IVM arm for S3 / S2. NOT the shipped bruce_pg."
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+default = ["pg17"]
+pg17 = ["pgrx/pg17"]
+pg18 = ["pgrx/pg18"]
+pg_test = []
+
+[dependencies]
+pgrx = "=0.18.1"
+softagg-core = { path = "../../../engines/core" }
+ladder-core = { path = "../ladder_core" }
+
+[profile.dev]
+panic = "unwind"
+
+[profile.release]
+panic = "unwind"
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+[workspace]

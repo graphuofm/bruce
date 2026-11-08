@@ -1,0 +1,56 @@
+[package]
+name = "bruce_pg"
+# History (bruce_tool/bruce-pg, commit 51b62f1):
+# 0.1.0 -> 0.1.1: no functional change; versioned-upgrade machinery.
+# 0.1.1 -> 0.1.2: ±Inf per bruce-core, NaN propagates, state float8[5].
+# 0.1.2 -> 0.2.0 (paper_icde/engines/postgres): `internal` aggregate state
+#   (palloc'd once per group in the aggregate memory context) with
+#   SERIALFUNC/DESERIALFUNC for parallel plans; the arithmetic comes from
+#   the shared softagg-core crate (../core) instead of a vendored copy;
+#   moving-aggregate form (MSFUNC/MINVFUNC/MFINALFUNC) over
+#   softagg_core::InvAcc for O(1) sliding windows. Results are unchanged
+#   from 0.1.2 (same ScalarAcc, same NaN/±Inf/eps policy).
+#   See sql/bruce_pg--0.1.2--0.2.0.sql.
+version = "0.2.0"
+edition = "2021"
+authors = ["Jiacheng Ding <jding2@memphis.edu>"]
+license = "Apache-2.0"
+description = "softavg(value, score, eps) as a native PostgreSQL aggregate over softagg-core"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+default = ["pg17"]
+pg13 = ["pgrx/pg13", "pgrx-tests/pg13"]
+pg14 = ["pgrx/pg14", "pgrx-tests/pg14"]
+pg15 = ["pgrx/pg15", "pgrx-tests/pg15"]
+pg16 = ["pgrx/pg16", "pgrx-tests/pg16"]
+pg17 = ["pgrx/pg17", "pgrx-tests/pg17"]
+pg18 = ["pgrx/pg18", "pgrx-tests/pg18"]
+pg_test = []
+
+[dependencies]
+# Pinned: cargo-pgrx 0.19.x needs rustc >= 1.96; this machine has 1.95.
+pgrx = "=0.18.1"
+# The one implementation shared by every paper_icde engine extension.
+softagg-core = { path = "../core" }
+# relF baseline states for experiments/anchored (not part of the softavg path)
+relf-core = { path = "../relf_core" }
+
+[dev-dependencies]
+pgrx-tests = "=0.18.1"
+# pure-Rust tests read ../core/conformance/vectors.json
+serde_json = "1"
+
+[profile.dev]
+panic = "unwind"
+
+[profile.release]
+panic = "unwind"
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+# Standalone crate: NOT a member of any parent workspace.
+[workspace]

@@ -1,0 +1,807 @@
+{
+ "corpus": "imdb",
+ "n_rows": 459865,
+ "rule": "RandomState(0); first sentence 4-20 words, deduped; 200 sampled",
+ "queries": [
+  {
+   "row": 256557,
+   "text": "Zanna bianca alla riscossa"
+  },
+  {
+   "row": 107447,
+   "text": "Aleska & Angelika: Pornochic 21"
+  },
+  {
+   "row": 258157,
+   "text": "Those Were Wonderful Days"
+  },
+  {
+   "row": 104636,
+   "text": "The Honor of the Family"
+  },
+  {
+   "row": 51612,
+   "text": "Im Himmel ist die H\u00f6lle los"
+  },
+  {
+   "row": 17729,
+   "text": "Engel der Gerechtigkeit - Br\u00fcder f\u00fcrs Leben"
+  },
+  {
+   "row": 452981,
+   "text": "Birds, Bees and Buffy"
+  },
+  {
+   "row": 161478,
+   "text": "Le programme du jour"
+  },
+  {
+   "row": 279359,
+   "text": "The Shadow in the North"
+  },
+  {
+   "row": 421175,
+   "text": "Pie in the Sky/Hot Rodney/Space Dogs"
+  },
+  {
+   "row": 94187,
+   "text": "The Good Old Days of Radio"
+  },
+  {
+   "row": 87834,
+   "text": "Inagaw mo ang lahat sa akin"
+  },
+  {
+   "row": 421335,
+   "text": "Scare and Scare Alike/Spooky Boo-tique"
+  },
+  {
+   "row": 94092,
+   "text": "The Fire in Francesca"
+  },
+  {
+   "row": 46273,
+   "text": "The Masks of the Devil"
+  },
+  {
+   "row": 333735,
+   "text": "Gun Kills of Vietnam"
+  },
+  {
+   "row": 71595,
+   "text": "Jason and the High Cost of Electricity"
+  },
+  {
+   "row": 114787,
+   "text": "La course du li\u00e8vre \u00e0 travers les champs"
+  },
+  {
+   "row": 281659,
+   "text": "Thicker Than Blood: The Larry McLinden Story"
+  },
+  {
+   "row": 353654,
+   "text": "The Big Reversal! Goku and No"
+  },
+  {
+   "row": 103388,
+   "text": "Dancing on the Moon"
+  },
+  {
+   "row": 357820,
+   "text": "Greatest Ever Comedy Movies"
+  },
+  {
+   "row": 68947,
+   "text": "Gift for the Living"
+  },
+  {
+   "row": 124504,
+   "text": "Willie and the Mouse"
+  },
+  {
+   "row": 80794,
+   "text": "1PW: No Turning Back, Night 2"
+  },
+  {
+   "row": 188814,
+   "text": "Wine for the Confused"
+  },
+  {
+   "row": 64544,
+   "text": "Freestyle (with Brian Friedman)"
+  },
+  {
+   "row": 61025,
+   "text": "Keep the Faith, Baby"
+  },
+  {
+   "row": 206322,
+   "text": "Return to Sleepaway Camp: Behind the Scenes"
+  },
+  {
+   "row": 383176,
+   "text": "It's All About Who You Know"
+  },
+  {
+   "row": 216358,
+   "text": "The Princess and the Call Girl"
+  },
+  {
+   "row": 314445,
+   "text": "The Perils of Punky: Part 1"
+  },
+  {
+   "row": 152582,
+   "text": "Le coll\u00e8ge file \u00e0 l'anglaise"
+  },
+  {
+   "row": 334874,
+   "text": "The Case of the Hasty Honeymooner"
+  },
+  {
+   "row": 189017,
+   "text": "24 Hour Party People: The Factory Records Saga"
+  },
+  {
+   "row": 386524,
+   "text": "Kaun Banega Crorepati Junior"
+  },
+  {
+   "row": 262317,
+   "text": "Sous un coin de ciel bleu"
+  },
+  {
+   "row": 190159,
+   "text": "Noto, Mandorli, Vulcano, Stromboli, carnevale"
+  },
+  {
+   "row": 231007,
+   "text": "Now Pay Attention 007: A Tribute to Actor Desmond Llewelyn"
+  },
+  {
+   "row": 122517,
+   "text": "The Golden Age of the Piano"
+  },
+  {
+   "row": 94409,
+   "text": "The Beatles: The First U"
+  },
+  {
+   "row": 349135,
+   "text": "A Quiet Night in Town: Part 1"
+  },
+  {
+   "row": 41072,
+   "text": "First Earth: Uncompromising Ecological Architecture"
+  },
+  {
+   "row": 183653,
+   "text": "Aristophanes: The Gods Are Laughing"
+  },
+  {
+   "row": 265082,
+   "text": "O anthropos pou espage plaka!"
+  },
+  {
+   "row": 175283,
+   "text": "Run for the Money"
+  },
+  {
+   "row": 178396,
+   "text": "A bord du 'Formidable': escrime au sabre"
+  },
+  {
+   "row": 415113,
+   "text": "Imagine a Long Bright Corridor"
+  },
+  {
+   "row": 89598,
+   "text": "The Last Stagecoach West"
+  },
+  {
+   "row": 110269,
+   "text": "We Are What We Are"
+  },
+  {
+   "row": 381440,
+   "text": "Is There a Hamster in the House?"
+  },
+  {
+   "row": 108817,
+   "text": "Final Cut: H\u00f6lgyeim \u00e9s uraim"
+  },
+  {
+   "row": 436797,
+   "text": "A Dash of Respect"
+  },
+  {
+   "row": 243073,
+   "text": "Zha dian na fu"
+  },
+  {
+   "row": 196009,
+   "text": "Till det som \u00e4r vackert"
+  },
+  {
+   "row": 314290,
+   "text": "Cuts Like a Knife"
+  },
+  {
+   "row": 298501,
+   "text": "4 Chefs Compete Again"
+  },
+  {
+   "row": 154705,
+   "text": "Marg kasb va kare man ast"
+  },
+  {
+   "row": 192288,
+   "text": "The Indian and the Samurai"
+  },
+  {
+   "row": 453618,
+   "text": "Nothing Like a Mama's Sweet Love"
+  },
+  {
+   "row": 433935,
+   "text": "Smells Like Teen Spirit"
+  },
+  {
+   "row": 89097,
+   "text": "Keg of the Dead"
+  },
+  {
+   "row": 408254,
+   "text": "Die Frau ohne Vergangenheit"
+  },
+  {
+   "row": 209363,
+   "text": "The World's Smartest Man"
+  },
+  {
+   "row": 348882,
+   "text": "Mamore Baratie! Daikaizoku akaashi no Zefu"
+  },
+  {
+   "row": 38943,
+   "text": "A Connecticut Yankee in King Arthur's Court"
+  },
+  {
+   "row": 10437,
+   "text": "Himmel Polt und H\u00f6lle"
+  },
+  {
+   "row": 214625,
+   "text": "Captain Nemo and the Underwater City"
+  },
+  {
+   "row": 337962,
+   "text": "Minna no pokemon bokuj\u00f4"
+  },
+  {
+   "row": 291164,
+   "text": "Som du vil ha' mig"
+  },
+  {
+   "row": 147345,
+   "text": "A Man Called Peter"
+  },
+  {
+   "row": 103454,
+   "text": "Das Leben ist eine Baustelle"
+  },
+  {
+   "row": 350994,
+   "text": "A Word a Day"
+  },
+  {
+   "row": 197429,
+   "text": "Bratz Kidz: Sleep-Over Adventure"
+  },
+  {
+   "row": 177243,
+   "text": "Discoverer: A Personal Account of the British Army Antarctic Expedition 2007-08"
+  },
+  {
+   "row": 381132,
+   "text": "Sex, Lies & Red Tape"
+  },
+  {
+   "row": 155976,
+   "text": "West Point of the Air"
+  },
+  {
+   "row": 336775,
+   "text": "The Spy from Moscow"
+  },
+  {
+   "row": 190025,
+   "text": "Night of the Eagle"
+  },
+  {
+   "row": 449813,
+   "text": "The Incredible Doktor Markesan"
+  },
+  {
+   "row": 100465,
+   "text": "Evil in Clear River"
+  },
+  {
+   "row": 420702,
+   "text": "La queue du scorpion"
+  },
+  {
+   "row": 175931,
+   "text": "Dachnaya poezdka serzhanta Tsybuli"
+  },
+  {
+   "row": 315114,
+   "text": "He Was a Friend of Mine"
+  },
+  {
+   "row": 456235,
+   "text": "Who Will Cheer My Bonnie Bride"
+  },
+  {
+   "row": 309262,
+   "text": "Planet of the Lost"
+  },
+  {
+   "row": 58570,
+   "text": "G\u00fcler misin aglar misin"
+  },
+  {
+   "row": 54149,
+   "text": "I Am a Director"
+  },
+  {
+   "row": 352698,
+   "text": "Left Hand of the Goddess"
+  },
+  {
+   "row": 272858,
+   "text": "The Run of the Country"
+  },
+  {
+   "row": 265105,
+   "text": "OL kanno nikki: Ah! Watashi no naka de"
+  },
+  {
+   "row": 61301,
+   "text": "Evolution: The Genesis of 'Fringe Season 1'"
+  },
+  {
+   "row": 3934,
+   "text": "CBS News Up to the Minute"
+  },
+  {
+   "row": 4758,
+   "text": "Bering Sea Gold: Under the Ice"
+  },
+  {
+   "row": 9960,
+   "text": "The Adventures of Blinky Bill"
+  },
+  {
+   "row": 408479,
+   "text": "The History of Hardcore"
+  },
+  {
+   "row": 158019,
+   "text": "Mariah Carey: Around the World"
+  },
+  {
+   "row": 75846,
+   "text": "Ense\u00f1ar a un sinverg\u00fcenza"
+  },
+  {
+   "row": 442640,
+   "text": "A Horse from Heaven"
+  },
+  {
+   "row": 189929,
+   "text": "Neeku Naaku Dash Dash"
+  },
+  {
+   "row": 137253,
+   "text": "Mamas & the Papas: Straight Shooters"
+  },
+  {
+   "row": 57137,
+   "text": "Flamenco: A Personal Journey"
+  },
+  {
+   "row": 450588,
+   "text": "Sun Show: Part 1"
+  },
+  {
+   "row": 101994,
+   "text": "The Journey of the Fifth Horse"
+  },
+  {
+   "row": 211564,
+   "text": "M\u00f6tley Cr\u00fce: Carnival of Sins"
+  },
+  {
+   "row": 271764,
+   "text": "Stan Becker - Ein Mann, ein Wort"
+  },
+  {
+   "row": 455245,
+   "text": "Don't Panic: Part 2"
+  },
+  {
+   "row": 277819,
+   "text": "Na petheros, na malama!"
+  },
+  {
+   "row": 421140,
+   "text": "Day 7: 12:00 a"
+  },
+  {
+   "row": 174434,
+   "text": "Don't Say No Until I Finish Talking: The Story of Richard D"
+  },
+  {
+   "row": 120574,
+   "text": "Ast\u00e9rix et Ob\u00e9lix contre C\u00e9sar: L'envers du d\u00e9cor"
+  },
+  {
+   "row": 376308,
+   "text": "Giants and All That Jazz"
+  },
+  {
+   "row": 44432,
+   "text": "Le boulanger de Valorgue"
+  },
+  {
+   "row": 360272,
+   "text": "Midnight on the Firing Line"
+  },
+  {
+   "row": 338190,
+   "text": "Prendimi e portami via"
+  },
+  {
+   "row": 289246,
+   "text": "Tale of Two Sisters"
+  },
+  {
+   "row": 309720,
+   "text": "Semifinals - First 12"
+  },
+  {
+   "row": 138530,
+   "text": "A Passion to Kill"
+  },
+  {
+   "row": 185215,
+   "text": "O-bi, O-ba - Koniec cywilizacji"
+  },
+  {
+   "row": 35315,
+   "text": "Comment ne pas \u00e9pouser un milliardaire"
+  },
+  {
+   "row": 365102,
+   "text": "Steele in the Family"
+  },
+  {
+   "row": 240684,
+   "text": "Bonhoeffer: Agent of Grace"
+  },
+  {
+   "row": 67704,
+   "text": "La chanson de Nahide"
+  },
+  {
+   "row": 47984,
+   "text": "Tokyo 1964: Games of the XVIII Olympiad"
+  },
+  {
+   "row": 53806,
+   "text": "Emotional History: The Making of 'The Unbearable Lightness of Being'"
+  },
+  {
+   "row": 1030,
+   "text": "Around the World in 80 Plates"
+  },
+  {
+   "row": 105544,
+   "text": "Das Geheimnis der Mittsommernacht"
+  },
+  {
+   "row": 338973,
+   "text": "I'll Jump for You"
+  },
+  {
+   "row": 360341,
+   "text": "Day 8: 10:00 a"
+  },
+  {
+   "row": 68169,
+   "text": "Leisure Suit Larry 5: Passionate Patti Does a Little Undercover Work"
+  },
+  {
+   "row": 240515,
+   "text": "Black Babes in Heat"
+  },
+  {
+   "row": 329423,
+   "text": "The Defection of Hawkeye"
+  },
+  {
+   "row": 195691,
+   "text": "The Texan Meets Calamity Jane"
+  },
+  {
+   "row": 61708,
+   "text": "The New Tom Green Show"
+  },
+  {
+   "row": 457027,
+   "text": "Fiberglass Boats/Clothes Dryers/Bubble Gum/Fireworks"
+  },
+  {
+   "row": 160910,
+   "text": "The Language You Cry In"
+  },
+  {
+   "row": 440124,
+   "text": "The Miracle in God's Country! A Love Song Heard by Angels"
+  },
+  {
+   "row": 158687,
+   "text": "Mystery Case Files: Dire Grove"
+  },
+  {
+   "row": 23778,
+   "text": "Chorlton and the Wheelies"
+  },
+  {
+   "row": 19117,
+   "text": "Kamenskaya: Ya umer vchera"
+  },
+  {
+   "row": 82202,
+   "text": "I Love You, Man"
+  },
+  {
+   "row": 234858,
+   "text": "Barudof\u00f4su eguze rezory\u00fbshon: Ribiruto"
+  },
+  {
+   "row": 32370,
+   "text": "Be Good Johnny Weir"
+  },
+  {
+   "row": 74993,
+   "text": "From Two Men and a War"
+  },
+  {
+   "row": 289004,
+   "text": "Summer in My Veins"
+  },
+  {
+   "row": 45399,
+   "text": "The Bed by the Window"
+  },
+  {
+   "row": 30140,
+   "text": "The Real Sex in the City"
+  },
+  {
+   "row": 201506,
+   "text": "Sinbad: The Battle of the Dark Knights"
+  },
+  {
+   "row": 140823,
+   "text": "Au del\u00e0 de la haine"
+  },
+  {
+   "row": 452951,
+   "text": "Fjernkontroll og alt fritt"
+  },
+  {
+   "row": 409611,
+   "text": "The Rhinoceros in the Middle of the Room"
+  },
+  {
+   "row": 343255,
+   "text": "Thunder in the Skies"
+  },
+  {
+   "row": 309072,
+   "text": "Two Large Pearls and a Bar of Gold"
+  },
+  {
+   "row": 54768,
+   "text": "S\u00e9 lo que hicisteis la \u00faltima semana"
+  },
+  {
+   "row": 360228,
+   "text": "Penguin Sets a Trend"
+  },
+  {
+   "row": 403703,
+   "text": "Not So Happy Campers: Part 2"
+  },
+  {
+   "row": 149367,
+   "text": "Back in the Saddle"
+  },
+  {
+   "row": 366942,
+   "text": "Maigret on Home Ground"
+  },
+  {
+   "row": 231844,
+   "text": "Shut Up and Sing"
+  },
+  {
+   "row": 43128,
+   "text": "The Inferno: Grope the Rope"
+  },
+  {
+   "row": 278478,
+   "text": "Nativity 2: Danger in the Manger!"
+  },
+  {
+   "row": 98807,
+   "text": "I sogni nel cassetto"
+  },
+  {
+   "row": 249088,
+   "text": "To remali tis Fokionos Negri"
+  },
+  {
+   "row": 187166,
+   "text": "13th Annual Critics' Choice Awards Red Carpet Premiere"
+  },
+  {
+   "row": 92326,
+   "text": "Little Shop of Whores"
+  },
+  {
+   "row": 424066,
+   "text": "Thomas Comes to Breakfast"
+  },
+  {
+   "row": 425101,
+   "text": "The Tale of the Crimson Clown"
+  },
+  {
+   "row": 443439,
+   "text": "Chain of Command: Part 2"
+  },
+  {
+   "row": 236542,
+   "text": "Mother Goose on the Loose"
+  },
+  {
+   "row": 380090,
+   "text": "Will the Real Adolf Please Stand Up?"
+  },
+  {
+   "row": 420465,
+   "text": "The Seven-Month Itch: Part 1"
+  },
+  {
+   "row": 404549,
+   "text": "Lawyers, Beer and Money"
+  },
+  {
+   "row": 125844,
+   "text": "Pepsi Smash Superbowl Bash"
+  },
+  {
+   "row": 398056,
+   "text": "Aik Aur Love Story"
+  },
+  {
+   "row": 298949,
+   "text": "Touched by a Checkered Cab"
+  },
+  {
+   "row": 251824,
+   "text": "Nina Simone: Live at Ronnie Scott's"
+  },
+  {
+   "row": 97363,
+   "text": "Dos p\u00e1jaros de un tiro"
+  },
+  {
+   "row": 265790,
+   "text": "Seven Against the Sun"
+  },
+  {
+   "row": 185591,
+   "text": "The Restless Conscience: Resistance to Hitler Within Germany 1933-1945"
+  },
+  {
+   "row": 98738,
+   "text": "I Didn't Do Anything"
+  },
+  {
+   "row": 121333,
+   "text": "Ric Flair & The Four Horsemen"
+  },
+  {
+   "row": 344939,
+   "text": "Like a Rolling Chum"
+  },
+  {
+   "row": 16289,
+   "text": "Ja gut, ich sach mal"
+  },
+  {
+   "row": 383034,
+   "text": "Don't Go to Bed Mad"
+  },
+  {
+   "row": 146249,
+   "text": "Wake, Rattle & Roll"
+  },
+  {
+   "row": 26141,
+   "text": "Ice Age: The Meltdown"
+  },
+  {
+   "row": 169684,
+   "text": "Playboy: Women Behaving Badly"
+  },
+  {
+   "row": 375511,
+   "text": "A Feat of Strength"
+  },
+  {
+   "row": 117057,
+   "text": "A Relationship in Four Days"
+  },
+  {
+   "row": 31423,
+   "text": "Are You Tougher Than a Boy Scout?"
+  },
+  {
+   "row": 432050,
+   "text": "John Waters/The Mars Volta"
+  },
+  {
+   "row": 445774,
+   "text": "Pikeville, KY: Kentucky Gothic"
+  },
+  {
+   "row": 451374,
+   "text": "The Day They Hanged Kid Curry"
+  },
+  {
+   "row": 97693,
+   "text": "El fugitivo de Amberes"
+  },
+  {
+   "row": 303588,
+   "text": "And the Pearl Necklace"
+  },
+  {
+   "row": 16067,
+   "text": "In the Company of Whales"
+  },
+  {
+   "row": 216186,
+   "text": "On a trouv\u00e9 une femme nue"
+  },
+  {
+   "row": 130036,
+   "text": "Liza Minnelli Live from Radio City Music Hall"
+  },
+  {
+   "row": 80626,
+   "text": "Above, Beneath and Beyond the Valley: The Making of a Musical-Horror-Sex-Comedy"
+  },
+  {
+   "row": 269827,
+   "text": "Two AM; or, The Husband's Return"
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+comment = 'softmax-ladder ablation (S3: removal without certificate); experiments only, not shipped'
+default_version = '@CARGO_VERSION@'
+module_pathname = 'softavg_ablation'
+relocatable = false
+superuser = true
+trusted = false

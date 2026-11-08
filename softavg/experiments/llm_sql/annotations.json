@@ -1,0 +1,315 @@
+{
+ "_note": "Manual semantic tags, keyed by sql_sha (sha256(sql)[:12], see results.json samples[].sql_sha). different_question (string) turns a finite-but-wrong (d) SQL into (f); pattern (list) overrides the static tagger; note is free text. Filled after reading every SQL that evaluate.py classifies d or f.",
+ "e6f1ef080ca3": {
+  "different_question": "linear weights (100*cosine) normalised over the whole table, no softmax/temperature; SUM(rating*w/global_sum) per category",
+  "pattern": [
+   "no-exp"
+  ]
+ },
+ "59c9cf0d61cc": {
+  "different_question": "weights = L2 distance (emb <-> q), linear, larger distance = more weight; no softmax",
+  "pattern": [
+   "no-exp"
+  ]
+ },
+ "fc8629edf782": {
+  "different_question": "sigmoid(-0.1 * L2 distance) weights, divided by COUNT(*) (not by the weight sum)",
+  "pattern": [
+   "other (sigmoid)"
+  ]
+ },
+ "7e66d68963c7": {
+  "different_question": "softmax over L2 distance (emb <-> q) with a positive sign: farther reviews weigh more",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "e1e69dc19c53": {
+  "different_question": "weights 1 - sigmoid(0.1*cos) and AVG(rating*w): neither softmax nor normalised",
+  "pattern": [
+   "other (sigmoid)"
+  ]
+ },
+ "66b805fdbf30": {
+  "different_question": "cosine DISTANCE (emb <=> q) used as the similarity: softmax favours the least similar reviews",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "1e9b876fe692": {
+  "different_question": "L2 distance ($1 <-> emb) used as the similarity",
+  "pattern": [
+   "naive"
+  ],
+  "note": "DuckDB returns NaN for all 29 groups (exp overflow -> inf/inf); would be wrong even if finite"
+ },
+ "be568e344c7d": {
+  "different_question": "exp(-L2 distance / 0.001): softmax of negative L2 distance instead of cosine similarity (monotone in cosine, different weights)",
+  "pattern": [
+   "naive"
+  ],
+  "note": "DuckDB returns NaN for 26/29 groups (all weights underflow to 0 -> 0/0)"
+ },
+ "28cb495fa230": {
+  "pattern": [
+   "max-shift(global)"
+  ],
+  "note": "global max-shift (one MAX over the whole table, CTE / scalar subquery / OVER ()): correct formula, but every group whose best similarity is more than ~745*eps below the global best underflows to 0/0"
+ },
+ "c40f5ba57cca": {
+  "pattern": [
+   "max-shift(global)"
+  ],
+  "note": "global max-shift (one MAX over the whole table, CTE / scalar subquery / OVER ()): correct formula, but every group whose best similarity is more than ~745*eps below the global best underflows to 0/0"
+ },
+ "fad135c7325c": {
+  "pattern": [
+   "max-shift(global)"
+  ],
+  "note": "global max-shift (one MAX over the whole table, CTE / scalar subquery / OVER ()): correct formula, but every group whose best similarity is more than ~745*eps below the global best underflows to 0/0"
+ },
+ "c8f5d4b33eb1": {
+  "pattern": [
+   "max-shift(global)"
+  ],
+  "note": "global max-shift (one MAX over the whole table, CTE / scalar subquery / OVER ()): correct formula, but every group whose best similarity is more than ~745*eps below the global best underflows to 0/0"
+ },
+ "058909a13281": {
+  "pattern": [
+   "max-shift(global)"
+  ],
+  "note": "global max-shift (one MAX over the whole table, CTE / scalar subquery / OVER ()): correct formula, but every group whose best similarity is more than ~745*eps below the global best underflows to 0/0"
+ },
+ "96a67daaea05": {
+  "pattern": [
+   "max-shift(global)"
+  ],
+  "note": "global max-shift (one MAX over the whole table, CTE / scalar subquery / OVER ()): correct formula, but every group whose best similarity is more than ~745*eps below the global best underflows to 0/0"
+ },
+ "ebf033ad92e1": {
+  "pattern": [
+   "max-shift(global)"
+  ],
+  "note": "global max-shift inside a sliding-window SUM ratio: correct formula; error comes from how the engine slides SUM; DuckDB: float32 arithmetic, error ~2e-6 relative (within the rounding spread)"
+ },
+ "bd10f313295f": {
+  "pattern": [
+   "max-shift(global)"
+  ],
+  "note": "global max-shift inside a sliding-window SUM ratio: correct formula; error comes from how the engine slides SUM"
+ },
+ "909f6025c190": {
+  "pattern": [
+   "constant-shift"
+  ],
+  "note": "constant shift by the cosine upper bound 1 (exp((cos-1)/T)) inside a sliding-window SUM ratio: correct formula; error comes from how the engine slides SUM; DuckDB: float32 similarity not cast to DOUBLE, error ~2e-6 relative (float32 rounding, within the spread between valid score definitions)"
+ },
+ "2e8ebc20ed95": {
+  "pattern": [
+   "constant-shift"
+  ],
+  "note": "constant shift by the cosine upper bound 1 (exp((cos-1)/T)) inside a sliding-window SUM ratio: correct formula; error comes from how the engine slides SUM"
+ },
+ "2c815677b06d": {
+  "pattern": [
+   "constant-shift"
+  ],
+  "note": "constant shift by the cosine upper bound 1 (exp((cos-1)/T)) inside a sliding-window SUM ratio: correct formula; error comes from how the engine slides SUM"
+ },
+ "bdd8f474e05f": {
+  "pattern": [
+   "max-shift(window)"
+  ],
+  "note": "per-category max-shift, correct formula; PostgreSQL raises on float8 exp underflow (no clamp)"
+ },
+ "ca1708eb1e40": {
+  "pattern": [
+   "max-shift(window)"
+  ],
+  "note": "per-category max-shift, correct formula; PostgreSQL raises on float8 exp underflow (no clamp)"
+ },
+ "9e61821ec45a": {
+  "pattern": [
+   "naive"
+  ],
+  "different_question": "cosine DISTANCE (emb <=> q) used as the similarity, and SUM(w*rating)/COUNT(*) instead of dividing by the weight sum"
+ },
+ "007056bd5dbe": {
+  "pattern": [
+   "naive"
+  ],
+  "different_question": "cosine DISTANCE (emb <=> q) used as the similarity, and SUM(w*rating)/COUNT(*) instead of dividing by the weight sum"
+ },
+ "5243e92d903d": {
+  "pattern": [
+   "naive"
+  ],
+  "different_question": "cosine DISTANCE used as the similarity, and AVG(rating*w) (unnormalised)"
+ },
+ "6b134bd68c8e": {
+  "pattern": [
+   "naive"
+  ],
+  "different_question": "L2 distance (<->) used as the similarity (1 - (1 - L2))"
+ },
+ "e4f86f5aaefb": {
+  "pattern": [
+   "naive"
+  ],
+  "different_question": "cosine distance as similarity, softmax weights renormalised twice, and the final JOIN on row_num alone (across categories) multiplies rows"
+ },
+ "03ae1daec9ba": {
+  "pattern": [
+   "max-shift(global)"
+  ],
+  "different_question": "cosine distance as similarity; weights normalised over the whole table and then AVG(rating*w/total) per category (not a weighted average)"
+ },
+ "8845da358f29": {
+  "pattern": [
+   "constant-shift"
+  ]
+ },
+ "8eed6d0e28c7": {
+  "pattern": [
+   "constant-shift"
+  ]
+ },
+ "af9d1b1d7b5c": {
+  "pattern": [
+   "constant-shift"
+  ],
+  "note": "casts the float32 similarity to DOUBLE before the exponent; the same SQL without the cast (909f6025c190) misses 1e-6 by float32 rounding"
+ },
+ "bb4bf2266965": {
+  "different_question": "temperature dropped: weights exp(cos) (temperature 1), not exp(cos/T)",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "735761e86534": {
+  "different_question": "temperature dropped: weights exp(cos) (temperature 1), not exp(cos/T)",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "66d5a1c5c4d8": {
+  "different_question": "temperature dropped: weights exp(cos) (temperature 1), not exp(cos/T) (the /0.001 is applied outside exp and cancels)",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "32cc8e995699": {
+  "different_question": "weights exp(0.0001*cos) (temperature multiplied), then divided by the category's share of the total weight",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "836012b332a0": {
+  "different_question": "returns exp_i*rating_i / window_sum per row (one term of the weighted sum), not the window's weighted average",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "993710f558f2": {
+  "different_question": "softmax normalised over a 50-row window that ignores the category partition, then re-averaged per category window",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "44e575fadd33": {
+  "different_question": "SUM(rating*exp/denom)/SUM(exp): normalised twice, result ~ average/denominator",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "30ce2f280b8e": {
+  "different_question": "sigmoid of the cosine distance as weight (not softmax); 026a8f559838 also divides by COUNT(*)",
+  "pattern": [
+   "other (sigmoid)"
+  ]
+ },
+ "026a8f559838": {
+  "different_question": "sigmoid of the cosine distance as weight (not softmax); 026a8f559838 also divides by COUNT(*)",
+  "pattern": [
+   "other (sigmoid)"
+  ]
+ },
+ "2841becdfe80": {
+  "different_question": "final GROUP BY id collapses each row to its own rating; the window sum is used only as a per-row normaliser",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "023cefb3de39": {
+  "different_question": "GROUP BY category keeps one arbitrary embedding per category; global normalisation; AVG(rating*weight)",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "de913f7cbb3b": {
+  "different_question": "global softmax over the whole table, then SUM(rating*w)/COUNT(*) per category",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "e0ce63c17bec": {
+  "pattern": [
+   "constant-shift"
+  ],
+  "note": "exp((cos-1)/T): correct formula; groups whose best cosine is below ~1-745*T underflow to 0/0 = NaN"
+ },
+ "011dd44a6a02": {
+  "different_question": "cosine DISTANCE as similarity; softmax normalised per window and then summed again over a second window",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "b1b9cd824b53": {
+  "pattern": [
+   "naive"
+  ],
+  "note": "correct formula SUM(rating * exp/total) per category, naive exp: exp overflows to Inf for cos > 0.71, Inf/Inf = NaN which SQLite stores as NULL, and SUM() skips NULLs, so the category's sum silently drops its most relevant reviews (finite, wrong)"
+ },
+ "8c793031abbd": {
+  "pattern": [
+   "naive"
+  ],
+  "note": "correct formula SUM(rating * exp/total) per category, naive exp: exp overflows to Inf for cos > 0.71, Inf/Inf = NaN which SQLite stores as NULL, and SUM() skips NULLs, so the category's sum silently drops its most relevant reviews (finite, wrong)"
+ },
+ "a5358cd42d50": {
+  "pattern": [
+   "naive"
+  ],
+  "note": "naive exp(cos/0.02) inside a sliding-window SUM ratio: correct formula, no overflow at T=0.02; SQLite slides SUM by add/subtract and the result is finite but wrong"
+ },
+ "67e2827d3748": {
+  "pattern": [
+   "naive"
+  ],
+  "note": "naive exp(cos/0.02) inside a sliding-window SUM ratio: correct formula, no overflow at T=0.02; SQLite slides SUM by add/subtract and the result is finite but wrong"
+ },
+ "47c1aa7492f9": {
+  "pattern": [
+   "naive"
+  ],
+  "note": "naive exp(cos/0.02) inside a sliding-window SUM ratio: correct formula, no overflow at T=0.02; SQLite slides SUM by add/subtract and the result is finite but wrong"
+ },
+ "dc5a18526dd8": {
+  "pattern": [
+   "naive"
+  ],
+  "note": "naive exp(cos/0.02) inside a sliding-window SUM ratio: correct formula, no overflow at T=0.02; SQLite slides SUM by add/subtract and the result is finite but wrong"
+ },
+ "156f8a91bbbe": {
+  "different_question": "temperature multiplied: exp(cos*0.02) instead of exp(cos/0.02) (near-uniform weights)",
+  "pattern": [
+   "naive"
+  ]
+ },
+ "94aa81002792": {
+  "different_question": "AVG(rating * w/sum_w): the weighted average divided again by the category size",
+  "pattern": [
+   "naive"
+  ]
+ }
+}
