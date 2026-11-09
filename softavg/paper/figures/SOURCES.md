@@ -13,4 +13,5 @@ Regenerate it in its experiment directory, then copy it again under the name bel
 | ess_per_group_vs_eps.pdf | experiments/bound/report.py | effective sample size per group vs eps |
 | host_contracts_execution.pdf | figures/host_contracts_execution.py (schematic, matplotlib; draw.io not installed) | one window frame slide in PostgreSQL / SQLite / DuckDB through the shared core |
 | ladder_rolling_trace.pdf | figures/ladder_rolling_trace.py (reads experiments/softmax_ladder/trace.json) | Case 2: rolling softavg on Amazon in time order, SQLite engine runs: S1 / S3 / S4 error vs exact |
+| window_cost_vs_k.pdf | figures/window_cost_vs_k.py (reads experiments/softmax_ladder/pg_window.jsonl, sqlite_timing.jsonl) | Case 2 window cost per rung vs frame size k, PostgreSQL 18.6 and SQLite (Amazon, eps = 0.02, smoke timings) |
 | case3_fanout_latency.pdf | figures/case3_fanout_latency.py (reads experiments/multilabel/results_maint_join.json) | Case 3: per-delete latency vs fan-out, join view vs pg_ivm vs single-label view |
