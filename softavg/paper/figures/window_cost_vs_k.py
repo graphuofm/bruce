@@ -52,6 +52,9 @@ s4s3 = sorted(pg[(d, e, q, k, "S4")] / pg[(d, e, q, k, "S3")]
               for (d, e, q, k, r) in pg if r == "S4" and (d, e, q, k, "S3") in pg)
 print(f"PG S2/S4 at k=1000: {min(s2s4):.0f}..{max(s2s4):.0f}x over {len(s2s4)} cells")
 print(f"PG S4/S3: median {s4s3[len(s4s3)//2]:.2f}, range {s4s3[0]:.2f}..{s4s3[-1]:.2f} over {len(s4s3)} cells")
+mod = sorted(pg[(d, e, q, k, "S4")] / pg[(d, e, q, k, "S3")]
+             for (d, e, q, k, r) in pg if r == "S4" and e >= 0.02 and (d, e, q, k, "S3") in pg)
+print(f"PG S4/S3 at eps >= 0.02: median {mod[len(mod)//2]:.2f} over {len(mod)} cells")
 for r in ("S1", "S2", "S3", "S4"):
     print("PG", r, [round(pg.get((DATASET, EPS, Q, k, r), float("nan"))) for k in ks])
 for r in ("S2", "S3", "S4"):
