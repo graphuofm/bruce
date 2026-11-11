@@ -24,18 +24,18 @@ def arrow(x1, y1, x2, y2, text=None, dx=0.8, dy=0.0):
                 ha="left", va="center")
 
 # shared core
-box(18, 40.5, 64, 6, "shared Rust core: InvAcc = online softmax state $(\\mu,z,u)$ + certificate $(n,e_z,e_u,v_{\\max})$\n"
-    "absorb / merge / remove;  exact iff $B \\leq \\tau_n$", CORE, fs=7.0)
+box(18, 40.5, 64, 6, "shared Rust core: InvAcc = online softmax state $(\\mu,z,y)$ + error bounds $(n,e_z,e_y,v_{\\max})$\n"
+    "absorb / merge / remove;  certified iff $B \\leq \\tau_n$", CORE, fs=7.0)
 
-cols = [(2, "PostgreSQL 17"), (35, "SQLite 3"), (68, "DuckDB 1.5")]
+cols = [(2, "PostgreSQL"), (35, "SQLite"), (68, "DuckDB")]
 for x, name in cols:
     box(x, 32.5, 30, 4.2, name, HOST, fs=7.6, bold=True)
     arrow(50, 40.3, x + 15, 36.9)
 
 # PostgreSQL column
 box(2, 23.5, 30, 6, "frame slides: MINVFUNC\ncalls remove", OK)
-box(2, 13, 14, 6.5, "exact:\nreturn state", OK, fs=6.8)
-box(18, 13, 14, 6.5, "not exact:\nreturn NULL", BAD, fs=6.8)
+box(2, 13, 14, 6.5, "certified:\nreturn state", OK, fs=6.8)
+box(18, 13, 14, 6.5, "not certified:\nreturn NULL", BAD, fs=6.8)
 box(2, 2, 30, 7, "executor restarts the frame\n(re-aggregates live rows)", HOST, fs=6.8)
 arrow(17, 32.3, 17, 29.7)
 arrow(10, 23.3, 9, 19.7); arrow(24, 23.3, 25, 19.7)
@@ -43,8 +43,8 @@ arrow(25, 12.8, 22, 9.2)
 
 # SQLite column
 box(35, 23.5, 30, 6, "frame slides: xInverse\ncalls remove (cannot refuse)", OK)
-box(35, 13, 14, 6.5, "exact:\nappend to\nframe shadow", OK, fs=6.6)
-box(51, 13, 14, 6.5, "not exact:\nflag refold", BAD, fs=6.8)
+box(35, 13, 14, 6.5, "certified:\nappend to\nframe shadow", OK, fs=6.6)
+box(51, 13, 14, 6.5, "not certified:\nflag refold", BAD, fs=6.8)
 box(35, 2, 30, 7, "xValue: extension refolds\nfrom its own frame shadow", HOST, fs=6.8)
 arrow(50, 32.3, 50, 29.7)
 arrow(43, 23.3, 42, 19.7); arrow(57, 23.3, 58, 19.7)

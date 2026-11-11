@@ -172,6 +172,10 @@ Some experiment READMEs cite internal design notes (`notes/INTEGRATION_ISSUES.md
 `notes/CORE_CHANGES.md`) that are not released; the README of each experiment states the
 finding itself.
 
+## Proof of the error bound
+
+`PROOF.md` holds the full derivation of the lemma, theorem and corollary on the error of certified values.
+
 ## Rerunning the experiments
 
 Run each experiment from its own directory. The commands, expected runtimes and cleanup are in
